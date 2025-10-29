@@ -111,10 +111,15 @@ export default function RecipeParser() {
     setAuthLoading(true);
 
     try {
+      // Use production URL for redirects
+      const redirectTo = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5173' 
+        : 'https://no-faff-recipe.netlify.app';
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: redirectTo
         }
       });
 
