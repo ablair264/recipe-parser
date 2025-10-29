@@ -123,49 +123,21 @@ export default function RecipeParser() {
     setCurrentRecipe(null);
 
     try {
-      const fetchResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      const fetchResponse = await fetch('/.netlify/functions/parse-recipe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
-          messages: [
-            {
-              role: 'user',
-              content: `Please fetch this recipe URL and extract the recipe information: ${url}
-
-IMPORTANT: You have access to a web_fetch tool. Use it to fetch the content of the URL I provided.
-
-After fetching, extract and return ONLY a JSON object with this exact structure:
-{
-  "title": "Recipe title",
-  "servings": "Number of servings (if available)",
-  "prepTime": "Prep time (if available)",
-  "cookTime": "Cook time (if available)",
-  "ingredients": ["ingredient 1", "ingredient 2", ...],
-  "instructions": ["step 1", "step 2", ...],
-  "sourceUrl": "${url}"
-}
-
-DO NOT include any text outside the JSON object. Your entire response must be valid JSON only.`
-            }
-          ]
-        })
+        body: JSON.stringify({ url })
       });
 
       const data = await fetchResponse.json();
       
       if (!fetchResponse.ok) {
-        throw new Error(data.error?.message || 'Failed to parse recipe');
+        throw new Error(data.error || 'Failed to parse recipe');
       }
 
-      let responseText = data.content[0].text;
-      responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      
-      const recipe = JSON.parse(responseText);
-      setCurrentRecipe(recipe);
+      setCurrentRecipe(data);
       
     } catch (err) {
       console.error('Error parsing recipe:', err);
