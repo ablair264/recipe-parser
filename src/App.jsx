@@ -506,19 +506,32 @@ export default function RecipeParser() {
                       Ingredients
                     </h3>
                     {currentRecipe.ingredients.some(hasUSMeasurements) && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className={`${!useUKMeasurements ? 'text-hunyadi-400 font-medium' : 'text-gray-500'}`}>US</span>
-                        <button
-                          onClick={() => setUseUKMeasurements(!useUKMeasurements)}
-                          className="text-hunyadi-500 hover:text-hunyadi-600 transition-colors"
-                        >
-                          {useUKMeasurements ? (
-                            <ToggleRight className="w-6 h-6" />
-                          ) : (
-                            <ToggleLeft className="w-6 h-6" />
-                          )}
-                        </button>
-                        <span className={`${useUKMeasurements ? 'text-hunyadi-400 font-medium' : 'text-gray-500'}`}>UK</span>
+                      <div className="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={() => setUseUKMeasurements(false)}
+                            className={`px-3 py-1.5 rounded-l-md text-sm font-medium transition-all ${
+                              !useUKMeasurements 
+                                ? 'bg-hunyadi-500 text-white shadow-sm' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            US
+                          </button>
+                          <button
+                            onClick={() => setUseUKMeasurements(true)}
+                            className={`px-3 py-1.5 rounded-r-md text-sm font-medium transition-all ${
+                              useUKMeasurements 
+                                ? 'bg-hunyadi-500 text-white shadow-sm' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            UK
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-500 text-center mt-1">
+                          Measurements
+                        </div>
                       </div>
                     )}
                   </div>
