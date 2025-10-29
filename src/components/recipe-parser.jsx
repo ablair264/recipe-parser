@@ -100,7 +100,7 @@ DO NOT include any text outside the JSON object. Your entire response must be va
             <ChefHat className="w-12 h-12 text-orange-600" />
             <h1 className="text-4xl font-bold text-gray-800">Recipe Parser</h1>
           </div>
-          <p className="text-gray-600">Extract and organize recipes from any website</p>
+          <p className="text-gray-600">Extract and organise recipes from any website</p>
         </div>
 
         {/* Navigation */}

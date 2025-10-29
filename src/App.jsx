@@ -173,7 +173,7 @@ export default function RecipeParser() {
       
     } catch (err) {
       console.error('Error parsing recipe:', err);
-      setError('Failed to parse recipe. Make sure the URL is valid and contains a recipe.');
+      setError('Failed to de-faff recipe. Make sure the URL is valid and contains a recipe.');
     } finally {
       setParsingLoading(false);
     }
@@ -375,7 +375,7 @@ export default function RecipeParser() {
               <ChefHat className="w-10 h-10 text-orange-600" />
               <h1 className="text-3xl font-bold text-gray-800">Defaff Recipes</h1>
             </div>
-            <p className="text-gray-600 text-sm">Extract and organize recipes from any website</p>
+            <p className="text-gray-600 text-sm">De-faff and organize recipes from any website</p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -406,7 +406,7 @@ export default function RecipeParser() {
             }`}
           >
             <Plus className="w-5 h-5" />
-            Parse Recipe
+            De-Faff Recipe
           </button>
           <button
             onClick={() => setActiveView('book')}
@@ -445,10 +445,10 @@ export default function RecipeParser() {
                   {parsingLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Parsing...
+                      De-faffing...
                     </>
                   ) : (
-                    'Parse Recipe'
+                    'De-Faff Recipe'
                   )}
                 </button>
               </div>
@@ -562,7 +562,7 @@ export default function RecipeParser() {
                   Your recipe book is empty
                 </h3>
                 <p className="text-gray-500">
-                  Parse and save recipes to build your collection
+                  De-faff and save recipes to build your collection
                 </p>
               </div>
             ) : (
