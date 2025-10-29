@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, BookOpen, Plus, Trash2, ExternalLink, Loader2, LogOut, User, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChefHat, BookOpen, Plus, Trash2, ExternalLink, Loader2, LogOut, User, ToggleLeft, ToggleRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { convertIngredientsToUK, hasUSMeasurements } from './utils/measurementConverter';
 
@@ -27,6 +27,8 @@ export default function RecipeParser() {
   const [activeView, setActiveView] = useState('parser');
   const [error, setError] = useState('');
   const [useUKMeasurements, setUseUKMeasurements] = useState(false);
+  const [substitutions, setSubstitutions] = useState({});
+  const [loadingSubstitution, setLoadingSubstitution] = useState(null);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -166,7 +168,8 @@ export default function RecipeParser() {
         cookTime: data.cookTime || '',
         ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
         instructions: Array.isArray(data.instructions) ? data.instructions : [],
-        sourceUrl: data.sourceUrl || url
+        sourceUrl: data.sourceUrl || url,
+        commentsSummary: data.commentsSummary || ''
       };
 
       setCurrentRecipe(validatedRecipe);
@@ -195,6 +198,7 @@ export default function RecipeParser() {
             ingredients: currentRecipe.ingredients,
             instructions: currentRecipe.instructions,
             source_url: currentRecipe.sourceUrl,
+            comments_summary: currentRecipe.commentsSummary,
           }
         ])
         .select();
@@ -233,8 +237,30 @@ export default function RecipeParser() {
       ingredients: recipe.ingredients,
       instructions: recipe.instructions,
       sourceUrl: recipe.source_url,
+      commentsSummary: recipe.comments_summary || '',
     });
     setActiveView('parser');
+  };
+
+  const getIngredientSubstitution = async (ingredient, index) => {
+    setLoadingSubstitution(index);
+    try {
+      const response = await fetch('/.netlify/functions/get-substitution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ingredient })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get substitution');
+      }
+      setSubstitutions(prev => ({ ...prev, [index]: data.substitution }));
+    } catch (error) {
+      console.error('Substitution error:', error);
+      setError('Failed to get ingredient substitution. Please try again.');
+    } finally {
+      setLoadingSubstitution(null);
+    }
   };
 
   // Loading state
@@ -535,11 +561,43 @@ export default function RecipeParser() {
                       </div>
                     )}
                   </div>
-                  <ul className="space-y-2">
+                  {/* Allergy Disclaimer */}
+                  <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r-lg">
+                    <div className="flex">
+                      <AlertTriangle className="w-5 h-5 text-orange-400 mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-orange-700">
+                        ⚠️ Allergy Warning: Please check all ingredients and substitutions for allergens. Consult a healthcare professional for dietary restrictions.
+                      </p>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-3">
                     {(useUKMeasurements ? convertIngredientsToUK(currentRecipe.ingredients) : currentRecipe.ingredients).map((ingredient, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <span className="text-hunyadi-500 font-bold mt-1">•</span>
-                        <span className="text-gray-700">{ingredient}</span>
+                      <li key={index} className="group">
+                        <div className="flex items-start gap-3">
+                          <span className="text-hunyadi-500 font-bold mt-1">•</span>
+                          <span className="text-gray-700 flex-1">{ingredient}</span>
+                          <button
+                            onClick={() => getIngredientSubstitution(ingredient, index)}
+                            disabled={loadingSubstitution === index}
+                            className="ml-2 p-1.5 text-carolina-600 hover:text-carolina-800 hover:bg-carolina-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                            title="Get ingredient substitution"
+                          >
+                            {loadingSubstitution === index ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        {substitutions[index] && (
+                          <div className="ml-8 mt-2 p-3 bg-hunyadi-50 border-l-4 border-hunyadi-400 rounded-r-md">
+                            <div className="text-sm text-hunyadi-800">
+                              <span className="font-semibold">Alternative: </span>
+                              {substitutions[index]}
+                            </div>
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -560,6 +618,18 @@ export default function RecipeParser() {
                     ))}
                   </ol>
                 </div>
+
+                {/* Comments Summary */}
+                {currentRecipe.commentsSummary && (
+                  <div className="mt-8">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-lapis-300">
+                      Community Tips
+                    </h3>
+                    <div className="bg-lapis-50 border-l-4 border-lapis-400 p-4 rounded-r-lg">
+                      <p className="text-lapis-800">{currentRecipe.commentsSummary}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

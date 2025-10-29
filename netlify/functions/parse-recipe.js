@@ -73,7 +73,7 @@ exports.handler = async (event, context) => {
         messages: [
           {
             role: 'user',
-            content: `Extract ALL recipe information from this HTML content for the URL: ${url}
+            content: `Extract ALL recipe information AND analyze comments from this HTML content for the URL: ${url}
 
 IMPORTANT: Make sure you extract the recipe from this specific URL, not any cached or previous content.
 
@@ -87,7 +87,8 @@ Extract and return ONLY a JSON object with this exact structure:
   "cookTime": "Cook time (e.g., '45 minutes', '1 hour')",
   "ingredients": ["1 1/2 cups granulated sugar", "3/4 cup all-purpose flour", "2/3 cup cocoa powder, sifted if lumpy", "1/2 cup powdered sugar, sifted if lumpy", "1/2 cup dark chocolate chips", "3/4 teaspoons sea salt", "2 large eggs", "1/2 cup canola oil or extra-virgin olive oil", "2 tablespoons water", "1/2 teaspoon vanilla"],
   "instructions": ["Preheat the oven to 325°F. Lightly spray an 8x8 baking dish with cooking spray and line it with parchment paper.", "In a medium bowl, combine the sugar, flour, cocoa powder, powdered sugar, chocolate chips, and salt.", "In a large bowl, whisk together the eggs, olive oil, water, and vanilla.", "Sprinkle the dry mix over the wet mix and stir until just combined.", "Pour the batter into the prepared pan and use a spatula to smooth the top. Bake for 40 to 48 minutes, or until a toothpick comes out with only a few crumbs attached.", "Cool completely before slicing."],
-  "sourceUrl": "${url}"
+  "sourceUrl": "${url}",
+  "commentsSummary": "Summary of useful cooking tips and modifications found in user comments (empty string if no useful comments found)"
 }
 
 CRITICAL REQUIREMENTS:
@@ -97,6 +98,7 @@ CRITICAL REQUIREMENTS:
 - Preserve exact measurements and cooking notes
 - Look for the complete recipe section, not just the beginning
 - Ignore ads, sponsored content, equipment lists, and recipe notes/tips
+- ANALYZE USER COMMENTS: Look for comments sections and summarize any useful cooking tips, modifications, or helpful feedback from users. Focus on practical cooking advice, ingredient substitutions, timing adjustments, or common issues mentioned by multiple users.
 
 The ingredients list should have 10 items and instructions should have 5-6 detailed steps minimum.
 
@@ -134,7 +136,8 @@ Return ONLY valid JSON. No other text.`
       cookTime: recipe.cookTime || '',
       ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
       instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
-      sourceUrl: recipe.sourceUrl || url
+      sourceUrl: recipe.sourceUrl || url,
+      commentsSummary: recipe.commentsSummary || ''
     };
 
     return {
