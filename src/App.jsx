@@ -252,7 +252,7 @@ export default function RecipeParser() {
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
           <div className="text-center mb-8">
-            <ChefHat className="w-16 h-16 text-orange-600 mx-auto mb-4" />
+            <img src="/logo.png" alt="Defaff Recipes" className="w-16 h-16 mx-auto mb-4 object-contain" />
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Defaff Recipes</h1>
             <p className="text-gray-600">Save and organize your favorite recipes</p>
           </div>
@@ -372,7 +372,7 @@ export default function RecipeParser() {
         <div className="flex justify-between items-center mb-8">
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <ChefHat className="w-10 h-10 text-orange-600" />
+              <img src="/logo.png" alt="Defaff Recipes" className="w-10 h-10 object-contain" />
               <h1 className="text-3xl font-bold text-gray-800">Defaff Recipes</h1>
             </div>
             <p className="text-gray-600 text-sm">De-faff and organize recipes from any website</p>
