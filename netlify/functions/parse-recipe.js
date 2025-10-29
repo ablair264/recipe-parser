@@ -98,12 +98,29 @@ DO NOT include any text outside the JSON object. Your entire response must be va
     responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
     // Parse the JSON response
-    const recipe = JSON.parse(responseText);
+    let recipe;
+    try {
+      recipe = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', responseText);
+      throw new Error('Invalid JSON response from AI');
+    }
+
+    // Validate and ensure required fields exist
+    const validatedRecipe = {
+      title: recipe.title || 'Untitled Recipe',
+      servings: recipe.servings || '',
+      prepTime: recipe.prepTime || '',
+      cookTime: recipe.cookTime || '',
+      ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+      instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
+      sourceUrl: recipe.sourceUrl || url
+    };
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(recipe)
+      body: JSON.stringify(validatedRecipe)
     };
 
   } catch (error) {

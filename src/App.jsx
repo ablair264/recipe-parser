@@ -137,7 +137,18 @@ export default function RecipeParser() {
         throw new Error(data.error || 'Failed to parse recipe');
       }
 
-      setCurrentRecipe(data);
+      // Validate and sanitize the recipe data
+      const validatedRecipe = {
+        title: data.title || 'Untitled Recipe',
+        servings: data.servings || '',
+        prepTime: data.prepTime || '',
+        cookTime: data.cookTime || '',
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+        instructions: Array.isArray(data.instructions) ? data.instructions : [],
+        sourceUrl: data.sourceUrl || url
+      };
+
+      setCurrentRecipe(validatedRecipe);
       
     } catch (err) {
       console.error('Error parsing recipe:', err);
