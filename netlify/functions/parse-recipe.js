@@ -65,9 +65,9 @@ exports.handler = async (event, context) => {
         messages: [
           {
             role: 'user',
-            content: `Extract recipe information from this HTML content. Look for recipe cards, structured data, or recipe sections.
+            content: `Extract ALL recipe information from this HTML content. Find the complete ingredients list and all cooking instructions.
 
-${htmlContent.substring(0, 15000)}
+${htmlContent.substring(0, 20000)}
 
 Extract and return ONLY a JSON object with this exact structure:
 {
@@ -75,18 +75,20 @@ Extract and return ONLY a JSON object with this exact structure:
   "servings": "Number of servings (e.g., '16 brownies', '4 servings')",
   "prepTime": "Prep time (e.g., '5 minutes', '15 mins')",
   "cookTime": "Cook time (e.g., '45 minutes', '1 hour')",
-  "ingredients": ["1 1/2 cups granulated sugar", "3/4 cup all-purpose flour", "2/3 cup cocoa powder"],
-  "instructions": ["Preheat the oven to 325°F", "In a medium bowl, combine the sugar, flour, cocoa powder", "Bake for 40 to 48 minutes"],
+  "ingredients": ["1 1/2 cups granulated sugar", "3/4 cup all-purpose flour", "2/3 cup cocoa powder, sifted if lumpy", "1/2 cup powdered sugar, sifted if lumpy", "1/2 cup dark chocolate chips", "3/4 teaspoons sea salt", "2 large eggs", "1/2 cup canola oil or extra-virgin olive oil", "2 tablespoons water", "1/2 teaspoon vanilla"],
+  "instructions": ["Preheat the oven to 325°F. Lightly spray an 8x8 baking dish with cooking spray and line it with parchment paper.", "In a medium bowl, combine the sugar, flour, cocoa powder, powdered sugar, chocolate chips, and salt.", "In a large bowl, whisk together the eggs, olive oil, water, and vanilla.", "Sprinkle the dry mix over the wet mix and stir until just combined.", "Pour the batter into the prepared pan and use a spatula to smooth the top. Bake for 40 to 48 minutes, or until a toothpick comes out with only a few crumbs attached.", "Cool completely before slicing."],
   "sourceUrl": "${url}"
 }
 
-Instructions for extraction:
-- Look for ingredients lists (often marked with "Ingredients" heading)
-- Look for numbered or bulleted instruction steps
-- Extract prep/cook times from recipe metadata or headings
-- Include exact measurements and quantities
-- Keep instructions as separate steps
-- Ignore ads, equipment lists, and notes unless they're critical instructions
+CRITICAL REQUIREMENTS:
+- Extract ALL ingredients from the complete ingredients list, not just the first few
+- Include ALL cooking steps as separate array items
+- Include full instructions with details (like "spray an 8x8 baking dish" not just "preheat oven")
+- Preserve exact measurements and cooking notes
+- Look for the complete recipe section, not just the beginning
+- Ignore ads, sponsored content, equipment lists, and recipe notes/tips
+
+The ingredients list should have 10 items and instructions should have 5-6 detailed steps minimum.
 
 Return ONLY valid JSON. No other text.`
           }
