@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, BookOpen, Plus, Trash2, ExternalLink, Loader2, LogOut, User } from 'lucide-react';
+import { ChefHat, BookOpen, Plus, Trash2, ExternalLink, Loader2, LogOut, User, ToggleLeft, ToggleRight } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { convertIngredientsToUK, hasUSMeasurements } from './utils/measurementConverter';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -25,6 +26,7 @@ export default function RecipeParser() {
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [activeView, setActiveView] = useState('parser');
   const [error, setError] = useState('');
+  const [useUKMeasurements, setUseUKMeasurements] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -499,11 +501,29 @@ export default function RecipeParser() {
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-orange-200">
-                    Ingredients
-                  </h3>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-orange-200">
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Ingredients
+                    </h3>
+                    {currentRecipe.ingredients.some(hasUSMeasurements) && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className={`${!useUKMeasurements ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>US</span>
+                        <button
+                          onClick={() => setUseUKMeasurements(!useUKMeasurements)}
+                          className="text-orange-600 hover:text-orange-700 transition-colors"
+                        >
+                          {useUKMeasurements ? (
+                            <ToggleRight className="w-6 h-6" />
+                          ) : (
+                            <ToggleLeft className="w-6 h-6" />
+                          )}
+                        </button>
+                        <span className={`${useUKMeasurements ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>UK</span>
+                      </div>
+                    )}
+                  </div>
                   <ul className="space-y-2">
-                    {currentRecipe.ingredients.map((ingredient, index) => (
+                    {(useUKMeasurements ? convertIngredientsToUK(currentRecipe.ingredients) : currentRecipe.ingredients).map((ingredient, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <span className="text-orange-600 font-bold mt-1">•</span>
                         <span className="text-gray-700">{ingredient}</span>
