@@ -44,13 +44,21 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // First, fetch the recipe page content
-    const pageResponse = await fetch(url);
+    // First, fetch the recipe page content with no-cache headers
+    console.log('Fetching URL:', url);
+    const pageResponse = await fetch(url, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
     if (!pageResponse.ok) {
-      throw new Error('Failed to fetch recipe page');
+      throw new Error(`Failed to fetch recipe page: ${pageResponse.status}`);
     }
     
     const htmlContent = await pageResponse.text();
+    console.log('HTML content length:', htmlContent.length);
+    console.log('HTML preview:', htmlContent.substring(0, 500));
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -65,7 +73,9 @@ exports.handler = async (event, context) => {
         messages: [
           {
             role: 'user',
-            content: `Extract ALL recipe information from this HTML content. Find the complete ingredients list and all cooking instructions.
+            content: `Extract ALL recipe information from this HTML content for the URL: ${url}
+
+IMPORTANT: Make sure you extract the recipe from this specific URL, not any cached or previous content.
 
 ${htmlContent.substring(0, 20000)}
 
