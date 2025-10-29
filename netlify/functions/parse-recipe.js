@@ -65,22 +65,30 @@ exports.handler = async (event, context) => {
         messages: [
           {
             role: 'user',
-            content: `Please extract recipe information from this HTML content:
+            content: `Extract recipe information from this HTML content. Look for recipe cards, structured data, or recipe sections.
 
 ${htmlContent.substring(0, 15000)}
 
 Extract and return ONLY a JSON object with this exact structure:
 {
   "title": "Recipe title",
-  "servings": "Number of servings (if available)",
-  "prepTime": "Prep time (if available)",
-  "cookTime": "Cook time (if available)",
-  "ingredients": ["ingredient 1", "ingredient 2", ...],
-  "instructions": ["step 1", "step 2", ...],
+  "servings": "Number of servings (e.g., '16 brownies', '4 servings')",
+  "prepTime": "Prep time (e.g., '5 minutes', '15 mins')",
+  "cookTime": "Cook time (e.g., '45 minutes', '1 hour')",
+  "ingredients": ["1 1/2 cups granulated sugar", "3/4 cup all-purpose flour", "2/3 cup cocoa powder"],
+  "instructions": ["Preheat the oven to 325°F", "In a medium bowl, combine the sugar, flour, cocoa powder", "Bake for 40 to 48 minutes"],
   "sourceUrl": "${url}"
 }
 
-DO NOT include any text outside the JSON object. Your entire response must be valid JSON only.`
+Instructions for extraction:
+- Look for ingredients lists (often marked with "Ingredients" heading)
+- Look for numbered or bulleted instruction steps
+- Extract prep/cook times from recipe metadata or headings
+- Include exact measurements and quantities
+- Keep instructions as separate steps
+- Ignore ads, equipment lists, and notes unless they're critical instructions
+
+Return ONLY valid JSON. No other text.`
           }
         ]
       })
