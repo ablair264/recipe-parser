@@ -240,8 +240,8 @@ export default function RecipeParser() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-orange-600 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-hunyadi-500 animate-spin" />
       </div>
     );
   }
@@ -249,7 +249,7 @@ export default function RecipeParser() {
   // Auth screen
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
           <div className="text-center mb-8">
             <img src="/logo.png" alt="Defaff Recipes" className="w-16 h-16 mx-auto mb-4 object-contain" />
@@ -262,7 +262,7 @@ export default function RecipeParser() {
               onClick={() => setAuthView('login')}
               className={`flex-1 py-2 rounded-lg font-medium transition-all ${
                 authView === 'login'
-                  ? 'bg-orange-600 text-white'
+                  ? 'bg-hunyadi-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -272,7 +272,7 @@ export default function RecipeParser() {
               onClick={() => setAuthView('signup')}
               className={`flex-1 py-2 rounded-lg font-medium transition-all ${
                 authView === 'signup'
-                  ? 'bg-orange-600 text-white'
+                  ? 'bg-hunyadi-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -290,7 +290,7 @@ export default function RecipeParser() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hunyadi-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -303,7 +303,7 @@ export default function RecipeParser() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hunyadi-500 focus:border-transparent"
                   required
                   minLength={6}
                 />
@@ -322,7 +322,7 @@ export default function RecipeParser() {
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {authLoading ? (
                   <>
@@ -366,7 +366,7 @@ export default function RecipeParser() {
 
   // Main app (authenticated)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -387,7 +387,7 @@ export default function RecipeParser() {
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 text-gray-600 hover:text-orange-600 transition-colors"
+              className="p-2 text-gray-300 hover:text-hunyadi-500 transition-colors"
               title="Logout"
             >
               <LogOut className="w-5 h-5" />
@@ -401,8 +401,8 @@ export default function RecipeParser() {
             onClick={() => setActiveView('parser')}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
               activeView === 'parser'
-                ? 'bg-orange-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-orange-50'
+                ? 'bg-hunyadi-500 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-carolina-800'
             }`}
           >
             <Plus className="w-5 h-5" />
@@ -412,8 +412,8 @@ export default function RecipeParser() {
             onClick={() => setActiveView('book')}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
               activeView === 'book'
-                ? 'bg-orange-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-orange-50'
+                ? 'bg-hunyadi-500 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-carolina-800'
             }`}
           >
             <BookOpen className="w-5 h-5" />
@@ -434,13 +434,13 @@ export default function RecipeParser() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com/recipe"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hunyadi-500 focus:border-transparent"
                   onKeyPress={(e) => e.key === 'Enter' && parseRecipe()}
                 />
                 <button
                   onClick={parseRecipe}
                   disabled={parsingLoading}
-                  className="px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="px-6 py-3 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   {parsingLoading ? (
                     <>
@@ -468,7 +468,7 @@ export default function RecipeParser() {
                       href={currentRecipe.sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-orange-600 hover:text-orange-700 text-sm flex items-center gap-1"
+                      className="text-hunyadi-500 hover:text-hunyadi-600 text-sm flex items-center gap-1"
                     >
                       View original <ExternalLink className="w-4 h-4" />
                     </a>
@@ -501,16 +501,16 @@ export default function RecipeParser() {
                 </div>
 
                 <div className="mb-8">
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-orange-200">
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-lapis-300">
                     <h3 className="text-xl font-bold text-gray-800">
                       Ingredients
                     </h3>
                     {currentRecipe.ingredients.some(hasUSMeasurements) && (
                       <div className="flex items-center gap-2 text-sm">
-                        <span className={`${!useUKMeasurements ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>US</span>
+                        <span className={`${!useUKMeasurements ? 'text-hunyadi-400 font-medium' : 'text-gray-500'}`}>US</span>
                         <button
                           onClick={() => setUseUKMeasurements(!useUKMeasurements)}
-                          className="text-orange-600 hover:text-orange-700 transition-colors"
+                          className="text-hunyadi-500 hover:text-hunyadi-600 transition-colors"
                         >
                           {useUKMeasurements ? (
                             <ToggleRight className="w-6 h-6" />
@@ -518,14 +518,14 @@ export default function RecipeParser() {
                             <ToggleLeft className="w-6 h-6" />
                           )}
                         </button>
-                        <span className={`${useUKMeasurements ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>UK</span>
+                        <span className={`${useUKMeasurements ? 'text-hunyadi-400 font-medium' : 'text-gray-500'}`}>UK</span>
                       </div>
                     )}
                   </div>
                   <ul className="space-y-2">
                     {(useUKMeasurements ? convertIngredientsToUK(currentRecipe.ingredients) : currentRecipe.ingredients).map((ingredient, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <span className="text-orange-600 font-bold mt-1">•</span>
+                        <span className="text-hunyadi-500 font-bold mt-1">•</span>
                         <span className="text-gray-700">{ingredient}</span>
                       </li>
                     ))}
@@ -533,13 +533,13 @@ export default function RecipeParser() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-orange-200">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-lapis-300">
                     Instructions
                   </h3>
                   <ol className="space-y-4">
                     {currentRecipe.instructions.map((instruction, index) => (
                       <li key={index} className="flex gap-4">
-                        <span className="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold">
+                        <span className="flex-shrink-0 w-8 h-8 bg-hunyadi-500 text-white rounded-full flex items-center justify-center font-bold">
                           {index + 1}
                         </span>
                         <span className="text-gray-700 pt-1">{instruction}</span>
@@ -597,7 +597,7 @@ export default function RecipeParser() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => loadRecipe(recipe)}
-                        className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+                        className="flex-1 px-4 py-2 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 transition-colors"
                       >
                         View Recipe
                       </button>
@@ -605,7 +605,7 @@ export default function RecipeParser() {
                         href={recipe.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-2 border border-orange-600 text-orange-600 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center gap-1"
+                        className="px-4 py-2 border border-hunyadi-500 text-hunyadi-500 rounded-lg font-medium hover:bg-carolina-800 transition-colors flex items-center gap-1"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
