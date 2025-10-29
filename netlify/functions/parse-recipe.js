@@ -44,6 +44,14 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // First, fetch the recipe page content
+    const pageResponse = await fetch(url);
+    if (!pageResponse.ok) {
+      throw new Error('Failed to fetch recipe page');
+    }
+    
+    const htmlContent = await pageResponse.text();
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -52,16 +60,16 @@ exports.handler = async (event, context) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 4000,
         messages: [
           {
             role: 'user',
-            content: `Please fetch this recipe URL and extract the recipe information: ${url}
+            content: `Please extract recipe information from this HTML content:
 
-IMPORTANT: You have access to a web_fetch tool. Use it to fetch the content of the URL I provided.
+${htmlContent.substring(0, 15000)}
 
-After fetching, extract and return ONLY a JSON object with this exact structure:
+Extract and return ONLY a JSON object with this exact structure:
 {
   "title": "Recipe title",
   "servings": "Number of servings (if available)",
