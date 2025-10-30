@@ -10,11 +10,11 @@ export default function LandingPage({ onGetStarted }) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-6">
               <img src="/logo.png" alt="Get The Recipe!" className="w-16 h-16 object-contain" />
-              <h1 className="text-5xl font-bold text-white">
+              <h1 className="text-5xl font-bold text-charcoal-500">
                 Get The Recipe!
               </h1>
             </div>
-            <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-charcoal-400 mb-8 max-w-2xl mx-auto">
               Transform any recipe URL into a clean, organized format. Save time cooking with our smart recipe parser that extracts ingredients and instructions from any website.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -28,7 +28,7 @@ export default function LandingPage({ onGetStarted }) {
               </button>
               <a
                 href="#download"
-                className="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-gray-900 transition-colors flex items-center gap-2 justify-center"
+                className="px-8 py-4 border-2 border-lapis-500 text-lapis-700 rounded-lg font-semibold hover:bg-lapis-500 hover:text-white transition-colors flex items-center gap-2 justify-center"
               >
                 <Smartphone className="w-5 h-5" />
                 Get Mobile App
@@ -64,8 +64,8 @@ export default function LandingPage({ onGetStarted }) {
             </div>
 
             <div className="text-center p-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ChefHat className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-carolina-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ChefHat className="w-8 h-8 text-carolina-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-3">
                 Clean Format
@@ -76,8 +76,8 @@ export default function LandingPage({ onGetStarted }) {
             </div>
 
             <div className="text-center p-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-blue-600" />
+              <div className="w-16 h-16 bg-lapis-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-lapis-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-3">
                 Smart Features
