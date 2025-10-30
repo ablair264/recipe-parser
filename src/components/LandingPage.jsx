@@ -1,5 +1,106 @@
-import React from 'react';
-import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check, Folder as FolderIcon, FileText, Sparkles } from 'lucide-react';
+
+// Lightweight, Tailwind-only versions of Reactbits "CardSwap" and "Folder"
+function CardSwap() {
+  const [swapped, setSwapped] = useState(false);
+  return (
+    <div className="relative group max-w-xl mx-auto h-80 select-none">
+      {/* Front: Blog backstory */}
+      <div
+        className={`absolute inset-0 bg-white rounded-xl shadow-2xl border border-carolina-800 p-6 transition-all duration-300 ease-out ${
+          swapped ? '-translate-y-4 -rotate-2 scale-95 opacity-0' : 'translate-y-0 rotate-0 opacity-100'
+        } group-hover:-translate-y-4 group-hover:-rotate-2 group-hover:scale-95`}
+        aria-hidden={swapped}
+      >
+        <div className="flex items-center gap-2 text-orange-600 mb-3">
+          <FileText className="w-4 h-4" />
+          <span className="text-sm font-semibold">2,000 words later…</span>
+        </div>
+        <p className="text-gray-700 mb-2">
+          My grandmother grew up on a small farm where every Sunday the whole
+          town would gather to hear the rooster sing. Anyway, here’s a photo of
+          my cat in a tiny apron…
+        </p>
+        <p className="text-gray-500 text-sm">
+          Scroll, scroll, scroll. Ads. Popups. Ten more paragraphs before the first
+          ingredient appears.
+        </p>
+      </div>
+
+      {/* Back: Clean recipe */}
+      <div
+        className={`absolute inset-0 bg-white rounded-xl shadow-2xl border border-hunyadi-700 p-6 transition-all duration-300 ease-out ${
+          swapped ? 'translate-y-0 rotate-0 opacity-100' : 'translate-y-6 rotate-1 opacity-0'
+        } group-hover:translate-y-0 group-hover:rotate-0 group-hover:opacity-100`}
+        aria-hidden={!swapped}
+      >
+        <div className="flex items-center gap-2 text-hunyadi-600 mb-3">
+          <Sparkles className="w-4 h-4" />
+          <span className="text-sm font-semibold">Just the recipe</span>
+        </div>
+        <h4 className="font-bold text-gray-800 mb-2">Weeknight Lasagna</h4>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className="font-semibold text-gray-700 mb-1">Ingredients</div>
+            <ul className="list-disc ml-4 text-gray-600 space-y-1">
+              <li>Pasta sheets</li>
+              <li>Tomato sauce</li>
+              <li>Mozzarella</li>
+            </ul>
+          </div>
+          <div>
+            <div className="font-semibold text-gray-700 mb-1">Steps</div>
+            <ol className="list-decimal ml-4 text-gray-600 space-y-1">
+              <li>Layer</li>
+              <li>Bake 35 min</li>
+              <li>Serve</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <button
+          onClick={() => setSwapped(!swapped)}
+          className="px-3 py-1.5 bg-hunyadi-500 text-white text-xs rounded-full shadow hover:bg-hunyadi-600"
+          aria-pressed={swapped}
+        >
+          {swapped ? 'Show Blog Version' : 'Show Recipe Version'}
+        </button>
+        <span className="text-[11px] text-gray-500">or hover to preview</span>
+      </div>
+    </div>
+  );
+}
+
+function FolderPreview() {
+  return (
+    <div className="max-w-xl mx-auto">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-lapis-800">
+        <div className="h-10 bg-gradient-to-r from-lapis-500 to-carolina-400 flex items-center px-4 text-white">
+          <FolderIcon className="w-4 h-4 mr-2" /> Saved Recipes
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            {[ 'Smash Burgers', 'Lemon Drizzle Cake', 'Crispy Tofu', 'One-Pot Pasta' ].map((title, i) => (
+              <div key={i} className="border border-carolina-800 rounded-lg p-3 hover:shadow-md transition-shadow">
+                <div className="h-1 bg-hunyadi-500 rounded mb-2" />
+                <div className="text-sm font-semibold text-gray-800 line-clamp-1">{title}</div>
+                <div className="text-xs text-gray-500">{i % 2 ? 'from AllRecipes' : 'from Food Network'}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 text-right">
+            <button className="inline-flex items-center gap-2 px-4 py-2 bg-hunyadi-500 text-white rounded-lg text-sm hover:bg-hunyadi-600">
+              <Globe className="w-4 h-4" /> Launch Web App
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage({ onGetStarted }) {
   return (
@@ -38,53 +139,24 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </div>
 
-      {/* Features Section */}
+      {/* No-life-story Section with CardSwap + Folder */}
       <div className="bg-white py-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">
-              Why Choose Get The Recipe?
+              I came for lasagna, not your life story
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Stop scrolling through endless blog posts to find the actual recipe. Our smart parser cuts through the noise.
+              Paste a link. We skip the novel and deliver clean ingredients and steps — fast.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-hunyadi-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-hunyadi-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                Save Time
-              </h3>
-              <p className="text-gray-600">
-                Skip the life stories and ads. Get straight to the ingredients and instructions in seconds.
-              </p>
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            <div>
+              <CardSwap />
             </div>
-
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-carolina-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ChefHat className="w-8 h-8 text-carolina-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                Clean Format
-              </h3>
-              <p className="text-gray-600">
-                Beautifully formatted recipes with clear ingredient lists and step-by-step instructions.
-              </p>
-            </div>
-
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-lapis-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-lapis-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                Smart Features
-              </h3>
-              <p className="text-gray-600">
-                UK/US measurement conversion, ingredient substitutions, and community cooking tips.
-              </p>
+            <div>
+              <FolderPreview />
             </div>
           </div>
         </div>
