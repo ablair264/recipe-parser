@@ -60,6 +60,120 @@ exports.handler = async (event, context) => {
     console.log('HTML content length:', htmlContent.length);
     console.log('HTML preview:', htmlContent.substring(0, 500));
 
+    // Try JSON-LD (schema.org/Recipe) first – much more reliable than LLM
+    const extractFromJsonLd = (html) => {
+      const scripts = [];
+      const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+      let m;
+      while ((m = re.exec(html))) {
+        scripts.push(m[1]);
+      }
+
+      const tryParse = (text) => {
+        try {
+          // Some sites include invalid trailing commas or HTML entities; be forgiving
+          return JSON.parse(text);
+        } catch (_) {
+          return null;
+        }
+      };
+
+      const flatten = (node) => {
+        if (!node) return [];
+        if (Array.isArray(node)) return node.flatMap(flatten);
+        if (typeof node === 'object') return [node];
+        return [];
+      };
+
+      const findRecipeNodes = (json) => {
+        const nodes = flatten(json);
+        const out = [];
+        for (const n of nodes) {
+          if (!n) continue;
+          const type = n['@type'];
+          if (type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))) {
+            out.push(n);
+          }
+          // Search in @graph
+          if (n['@graph']) {
+            out.push(...findRecipeNodes(n['@graph']));
+          }
+        }
+        return out;
+      };
+
+      for (const raw of scripts) {
+        const json = tryParse(raw);
+        if (!json) continue;
+        const recipes = findRecipeNodes(json);
+        if (recipes.length) {
+          // Take the most detailed recipe
+          const r = recipes[0];
+
+          const getName = () => r.name || r.headline || '';
+          const getServings = () => (r.recipeYield && (Array.isArray(r.recipeYield) ? r.recipeYield[0] : r.recipeYield)) || '';
+          const getPrepTime = () => r.prepTime || '';
+          const getCookTime = () => r.cookTime || r.totalTime || '';
+          const getIngredients = () => {
+            if (Array.isArray(r.recipeIngredient)) return r.recipeIngredient;
+            return [];
+          };
+          const getInstructions = () => {
+            const instr = r.recipeInstructions;
+            if (!instr) return [];
+            if (Array.isArray(instr)) {
+              const items = [];
+              for (const step of instr) {
+                if (typeof step === 'string') items.push(step);
+                else if (step && typeof step === 'object') {
+                  if (Array.isArray(step.itemListElement)) {
+                    for (const el of step.itemListElement) {
+                      if (typeof el === 'string') items.push(el);
+                      else if (el && typeof el === 'object' && (el.text || el.name)) {
+                        items.push(el.text || el.name);
+                      }
+                    }
+                  } else if (step.text || step.name) {
+                    items.push(step.text || step.name);
+                  }
+                }
+              }
+              return items.filter(Boolean);
+            }
+            if (typeof instr === 'string') return instr.split(/\n+/).map(s => s.trim()).filter(Boolean);
+            return [];
+          };
+
+          const ingredients = getIngredients();
+          const instructions = getInstructions();
+
+          if (ingredients.length && instructions.length) {
+            return {
+              title: getName(),
+              servings: getServings(),
+              prepTime: getPrepTime(),
+              cookTime: getCookTime(),
+              ingredients,
+              instructions,
+              sourceUrl: url,
+              commentsSummary: ''
+            };
+          }
+        }
+      }
+      return null;
+    };
+
+    const jsonLdRecipe = extractFromJsonLd(htmlContent);
+    if (jsonLdRecipe) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(jsonLdRecipe)
+      };
+    }
+
+    // Fallback to LLM extraction when JSON-LD is missing
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -73,7 +187,7 @@ exports.handler = async (event, context) => {
         messages: [
           {
             role: 'user',
-            content: `Extract ALL recipe information AND analyze comments from this HTML content for the URL: ${url}
+            content: `Extract recipe information AND analyze comments from this HTML content for the URL: ${url}
 
 IMPORTANT: Make sure you extract the recipe from this specific URL, not any cached or previous content.
 
@@ -92,17 +206,12 @@ Extract and return ONLY a JSON object with this exact structure:
 }
 
 CRITICAL REQUIREMENTS:
-- Extract ALL ingredients from the complete ingredients list, not just the first few
-- Include ALL cooking steps as separate array items
-- Include full instructions with details (like "spray an 8x8 baking dish" not just "preheat oven")
-- Preserve exact measurements and cooking notes
-- Look for the complete recipe section, not just the beginning
-- Ignore ads, sponsored content, equipment lists, and recipe notes/tips
-- ANALYZE USER COMMENTS: Look for comments sections and summarize any useful cooking tips, modifications, or helpful feedback from users. Focus on practical cooking advice, ingredient substitutions, timing adjustments, or common issues mentioned by multiple users.
-
-The ingredients list should have 10 items and instructions should have 5-6 detailed steps minimum.
-
-Return ONLY valid JSON. No other text.`
+- Extract ALL ingredients from the complete ingredients list – do not omit any.
+- Include ALL cooking steps as separate array items.
+- Preserve exact measurements/notes; do not invent ingredients.
+- Focus on the recipe card or structured data; ignore ads and tips.
+- ANALYZE USER COMMENTS: Summarize useful tips/modifications if present.
+- Return ONLY valid JSON. No other text.`
           }
         ]
       })
