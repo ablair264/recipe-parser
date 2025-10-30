@@ -1,5 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check, Folder as FolderIcon, FileText, Sparkles } from 'lucide-react';
+
+function SplitText({ text, className = '' }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <span aria-label={text} className={`inline-block ${className}`}>
+      {text.split('').map((ch, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={`inline-block transform transition-all duration-500 ${
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
+          }`}
+          style={{ transitionDelay: `${i * 40}ms` }}
+        >
+          {ch === ' ' ? '\u00A0' : ch}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 // Lightweight, Tailwind-only versions of Reactbits "CardSwap" and "Folder"
 function CardSwap() {
@@ -106,14 +130,12 @@ export default function LandingPage({ onGetStarted }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden bg-[#ffde59]">
         <div className="max-w-7xl mx-auto px-6 py-20">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <img src="/logo.png" alt="Get The Recipe!" className="w-16 h-16 object-contain" />
-              <h1 className="text-5xl font-bold text-charcoal-500">
-                Get The Recipe!
-              </h1>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <img src="/logo.png" alt="Get The Recipe!" className="w-28 h-28 md:w-32 md:h-32 object-contain" />
+              <SplitText text="Get The Recipe!" className="text-5xl md:text-6xl font-bold text-charcoal-500" />
             </div>
             <p className="text-xl text-charcoal-400 mb-8 max-w-2xl mx-auto">
               Transform any recipe URL into a clean, organized format. Save time cooking with our smart recipe parser that extracts ingredients and instructions from any website.
