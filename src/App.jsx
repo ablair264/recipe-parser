@@ -983,15 +983,50 @@ export default function RecipeParser() {
                         </button>
                       </div>
                       <div className="space-y-2">
-                        {basketMatches.items.map((it, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm">
-                            <div className="text-gray-700 truncate">
+                       {basketMatches.items.map((it, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm gap-3">
+                            <div className="text-gray-700 truncate flex-1">
                               <span className="font-medium">{it.ingredient}</span>
                               <span className="text-gray-500"> → {it.mappedLabel || it.query}</span>
                             </div>
-                            <a href={it.mappedUrl || it.searchUrl} target="_blank" rel="noreferrer" className="text-lapis-600 hover:underline">
+                            <a href={it.mappedUrl || it.searchUrl} target="_blank" rel="noreferrer" className="text-lapis-600 hover:underline whitespace-nowrap">
                               {it.mappedUrl ? 'Open' : 'Search'}
                             </a>
+                            {user && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const defaultUrl = it.mappedUrl || it.searchUrl || '';
+                                    const url = window.prompt('Product URL to save:', defaultUrl);
+                                    if (!url) return;
+                                    const label = window.prompt('Label (optional):', it.mappedLabel || it.query) || null;
+                                    const payload = {
+                                      user_id: user.id,
+                                      store: basketStore,
+                                      normalized_name: it.query,
+                                      product_url: url,
+                                      product_label: label,
+                                    };
+                                    const { error } = await supabase
+                                      .from('product_mappings')
+                                      .upsert(payload, { onConflict: 'user_id,store,normalized_name' });
+                                    if (error) throw error;
+                                    // update local item
+                                    setBasketMatches(prev => ({
+                                      ...prev,
+                                      items: prev.items.map((x, idx) => idx === i ? { ...x, mappedUrl: url, mappedLabel: label || x.query } : x)
+                                    }));
+                                  } catch (err) {
+                                    console.error('Save mapping error', err);
+                                    alert('Failed to save mapping: ' + (err.message || 'unknown error'));
+                                  }
+                                }}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                                title="Save as default product"
+                              >
+                                Save
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>

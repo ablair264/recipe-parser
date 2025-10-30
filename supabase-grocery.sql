@@ -30,20 +30,26 @@ create unique index if not exists product_mappings_user_store_name_key
 -- 3) RLS: per-user access only
 alter table public.product_mappings enable row level security;
 
-create policy if not exists "product_mappings_select_own"
+-- Drop old policies (if any) so creation never fails on reruns
+drop policy if exists "product_mappings_select_own" on public.product_mappings;
+drop policy if exists "product_mappings_insert_own" on public.product_mappings;
+drop policy if exists "product_mappings_update_own" on public.product_mappings;
+drop policy if exists "product_mappings_delete_own" on public.product_mappings;
+
+create policy "product_mappings_select_own"
   on public.product_mappings for select
   using (user_id = auth.uid());
 
-create policy if not exists "product_mappings_insert_own"
+create policy "product_mappings_insert_own"
   on public.product_mappings for insert
   with check (user_id = auth.uid());
 
-create policy if not exists "product_mappings_update_own"
+create policy "product_mappings_update_own"
   on public.product_mappings for update
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
-create policy if not exists "product_mappings_delete_own"
+create policy "product_mappings_delete_own"
   on public.product_mappings for delete
   using (user_id = auth.uid());
 
@@ -64,4 +70,3 @@ create trigger product_mappings_set_updated_at
 create or replace view public.product_mappings_debug as
   select id, user_id, store, normalized_name, product_label, product_url, last_price, currency, updated_at
   from public.product_mappings;
-
