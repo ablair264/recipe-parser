@@ -442,6 +442,31 @@ export default function RecipeParser() {
     return brandColors[Math.abs(hash) % brandColors.length];
   };
 
+  // SplitText animation for header
+  function SplitText({ text, className = '' }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+      const t = setTimeout(() => setMounted(true), 50);
+      return () => clearTimeout(t);
+    }, []);
+    return (
+      <span aria-label={text} className={`inline-block ${className}`}>
+        {text.split('').map((ch, i) => (
+          <span
+            key={i}
+            aria-hidden
+            className={`inline-block transform transition-all duration-500 ${
+              mounted ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
+            }`}
+            style={{ transitionDelay: `${i * 40}ms` }}
+          >
+            {ch === ' ' ? '\u00A0' : ch}
+          </span>
+        ))}
+      </span>
+    );
+  }
+
   // Show landing page first
   if (showLanding) {
     return <LandingPage onGetStarted={() => setShowLanding(false)} />;
@@ -580,25 +605,26 @@ export default function RecipeParser() {
       <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900">
         <main className="max-w-6xl mx-auto p-6">
           {/* Header */}
-          <header className="flex justify-between items-center mb-8">
-            <div className="text-center flex-1">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <img src="/logo.png" alt="Get The Recipe!" className="w-10 h-10 object-contain" />
-                <h1 className="text-3xl font-bold text-gray-800">Get The Recipe!</h1>
+          <header className="mb-8">
+            <div className="bg-[#ffde59] rounded-xl p-4 md:p-6 shadow flex items-center justify-between">
+              <div className="text-center flex-1">
+                <div className="flex items-center justify-center gap-4 mb-1">
+                  <img src="/logo.png" alt="Get The Recipe!" className="w-16 h-16 md:w-20 md:h-20 object-contain" />
+                  <SplitText text="Get The Recipe!" className="text-3xl md:text-4xl font-bold text-charcoal-500" />
+                </div>
+                <p className="text-charcoal-400 text-sm">Fetch and organize recipes from any website</p>
               </div>
-              <p className="text-gray-600 text-sm">Fetch and organize recipes from any website</p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
+
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                <div className="flex items-center gap-2 text-sm text-charcoal-500">
                   <User className="w-4 h-4" />
                   {user.email}
                 </div>
               </div>
               <button
                 onClick={() => setShowLanding(true)}
-                className="p-2 text-gray-600 hover:text-hunyadi-500 transition-colors"
+                className="p-2 text-charcoal-500 hover:text-orange-500 transition-colors"
                 title="Home"
                 aria-label="Home"
               >
@@ -606,12 +632,13 @@ export default function RecipeParser() {
               </button>
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-600 hover:text-hunyadi-500 transition-colors"
+                className="p-2 text-charcoal-500 hover:text-orange-500 transition-colors"
                 title="Logout"
                 aria-label="Logout"
               >
                 <LogOut className="w-5 h-5" />
               </button>
+              </div>
             </div>
           </header>
 

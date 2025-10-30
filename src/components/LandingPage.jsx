@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check, Folder as FolderIcon, FileText, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check, Folder as FolderIcon, FileText, Sparkles, Zap, Shield, Users, TrendingUp, Search, BookMarked } from 'lucide-react';
 
+// Animated text reveal component
 function SplitText({ text, className = '' }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -13,10 +14,10 @@ function SplitText({ text, className = '' }) {
         <span
           key={i}
           aria-hidden
-          className={`inline-block transform transition-all duration-500 ${
-            mounted ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
+          className={`inline-block transform transition-all duration-700 ease-out ${
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
-          style={{ transitionDelay: `${i * 40}ms` }}
+          style={{ transitionDelay: `${i * 30}ms` }}
         >
           {ch === ' ' ? '\u00A0' : ch}
         </span>
@@ -25,99 +26,166 @@ function SplitText({ text, className = '' }) {
   );
 }
 
-// Lightweight, Tailwind-only versions of Reactbits "CardSwap" and "Folder"
+// Enhanced card swap with smoother animations
 function CardSwap() {
   const [swapped, setSwapped] = useState(false);
+  
   return (
-    <div className="relative group max-w-xl mx-auto h-80 select-none">
+    <div className="relative group max-w-xl mx-auto h-96 select-none perspective-1000">
       {/* Front: Blog backstory */}
       <div
-        className={`absolute inset-0 bg-white rounded-xl shadow-2xl border border-carolina-800 p-6 transition-all duration-300 ease-out ${
-          swapped ? '-translate-y-4 -rotate-2 scale-95 opacity-0' : 'translate-y-0 rotate-0 opacity-100'
-        } group-hover:-translate-y-4 group-hover:-rotate-2 group-hover:scale-95`}
+        className={`absolute inset-0 bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 transition-all duration-500 ease-out cursor-pointer ${
+          swapped 
+            ? '-translate-y-6 -rotate-3 scale-90 opacity-0 pointer-events-none' 
+            : 'translate-y-0 rotate-0 opacity-100 hover:-translate-y-2 hover:shadow-3xl'
+        }`}
+        onClick={() => setSwapped(true)}
         aria-hidden={swapped}
       >
-        <div className="flex items-center gap-2 text-orange-600 mb-3">
-          <FileText className="w-4 h-4" />
-          <span className="text-sm font-semibold">2,000 words later…</span>
+        <div className="flex items-center gap-2 text-red-500 mb-4">
+          <FileText className="w-5 h-5" />
+          <span className="text-sm font-bold uppercase tracking-wide">2,000 words later...</span>
         </div>
-        <p className="text-gray-700 mb-2">
-          My grandmother grew up on a small farm where every Sunday the whole
-          town would gather to hear the rooster sing. Anyway, here’s a photo of
-          my cat in a tiny apron…
-        </p>
-        <p className="text-gray-500 text-sm">
-          Scroll, scroll, scroll. Ads. Popups. Ten more paragraphs before the first
-          ingredient appears.
-        </p>
+        <div className="space-y-4">
+          <p className="text-gray-700 leading-relaxed">
+            My grandmother grew up on a small farm where every Sunday the whole
+            town would gather to hear the rooster sing. Anyway, here's a photo of
+            my cat in a tiny apron...
+          </p>
+          <div className="space-y-2">
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-full"></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-5/6"></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-4/6"></div>
+          </div>
+          <p className="text-gray-400 text-sm italic border-l-4 border-gray-300 pl-4">
+            Scroll, scroll, scroll. Ads. Popups. Ten more paragraphs before the first
+            ingredient appears.
+          </p>
+          <div className="text-center pt-4">
+            <span className="text-xs text-gray-400">Click to see the better way →</span>
+          </div>
+        </div>
       </div>
 
       {/* Back: Clean recipe */}
       <div
-        className={`absolute inset-0 bg-white rounded-xl shadow-2xl border border-hunyadi-700 p-6 transition-all duration-300 ease-out ${
-          swapped ? 'translate-y-0 rotate-0 opacity-100' : 'translate-y-6 rotate-1 opacity-0'
-        } group-hover:translate-y-0 group-hover:rotate-0 group-hover:opacity-100`}
+        className={`absolute inset-0 bg-gradient-to-br from-white to-emerald-50 rounded-2xl shadow-2xl border-2 border-emerald-400 p-8 transition-all duration-500 ease-out cursor-pointer ${
+          swapped 
+            ? 'translate-y-0 rotate-0 opacity-100 hover:shadow-3xl' 
+            : 'translate-y-8 rotate-2 opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setSwapped(false)}
         aria-hidden={!swapped}
       >
-        <div className="flex items-center gap-2 text-hunyadi-600 mb-3">
-          <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-semibold">Just the recipe</span>
+        <div className="flex items-center gap-2 text-emerald-600 mb-4">
+          <Sparkles className="w-5 h-5" />
+          <span className="text-sm font-bold uppercase tracking-wide">Just the recipe</span>
         </div>
-        <h4 className="font-bold text-gray-800 mb-2">Weeknight Lasagna</h4>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <div className="font-semibold text-gray-700 mb-1">Ingredients</div>
-            <ul className="list-disc ml-4 text-gray-600 space-y-1">
-              <li>Pasta sheets</li>
-              <li>Tomato sauce</li>
-              <li>Mozzarella</li>
+        <h4 className="font-bold text-gray-900 mb-4 text-xl">Weeknight Lasagna</h4>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <div className="font-semibold text-gray-800 flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              Ingredients
+            </div>
+            <ul className="space-y-1.5 text-gray-600">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <span>Pasta sheets</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <span>Tomato sauce</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <span>Mozzarella</span>
+              </li>
             </ul>
           </div>
-          <div>
-            <div className="font-semibold text-gray-700 mb-1">Steps</div>
-            <ol className="list-decimal ml-4 text-gray-600 space-y-1">
-              <li>Layer</li>
-              <li>Bake 35 min</li>
-              <li>Serve</li>
+          <div className="space-y-2">
+            <div className="font-semibold text-gray-800 flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              Steps
+            </div>
+            <ol className="space-y-1.5 text-gray-600">
+              <li className="flex items-start gap-2">
+                <span className="font-semibold text-blue-500">1.</span>
+                <span>Layer ingredients</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold text-blue-500">2.</span>
+                <span>Bake 35 minutes</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold text-blue-500">3.</span>
+                <span>Serve hot</span>
+              </li>
             </ol>
           </div>
         </div>
-      </div>
-
-      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-        <button
-          onClick={() => setSwapped(!swapped)}
-          className="px-3 py-1.5 bg-hunyadi-500 text-white text-xs rounded-full shadow hover:bg-hunyadi-600"
-          aria-pressed={swapped}
-        >
-          {swapped ? 'Show Blog Version' : 'Show Recipe Version'}
-        </button>
-        <span className="text-[11px] text-gray-500">or hover to preview</span>
+        <div className="mt-6 pt-4 border-t border-emerald-200 flex items-center justify-between">
+          <div className="flex gap-3 text-xs">
+            <span className="flex items-center gap-1 text-gray-600">
+              <Clock className="w-3 h-3" /> 45 min
+            </span>
+            <span className="flex items-center gap-1 text-gray-600">
+              <Users className="w-3 h-3" /> 4 servings
+            </span>
+          </div>
+          <span className="text-xs text-gray-400">Click to go back</span>
+        </div>
       </div>
     </div>
   );
 }
 
+// Enhanced folder preview
 function FolderPreview() {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  
   return (
     <div className="max-w-xl mx-auto">
-      <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-lapis-800">
-        <div className="h-10 bg-gradient-to-r from-lapis-500 to-carolina-400 flex items-center px-4 text-white">
-          <FolderIcon className="w-4 h-4 mr-2" /> Saved Recipes
+      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 transform transition-transform hover:scale-105 duration-300">
+        <div className="h-14 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center px-6 text-white">
+          <FolderIcon className="w-5 h-5 mr-3" />
+          <span className="font-semibold">Saved Recipes</span>
+          <div className="ml-auto bg-white/20 rounded-full px-3 py-1 text-xs font-medium">
+            124 recipes
+          </div>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-2 gap-4">
-            {[ 'Smash Burgers', 'Lemon Drizzle Cake', 'Crispy Tofu', 'One-Pot Pasta' ].map((title, i) => (
-              <div key={i} className="border border-carolina-800 rounded-lg p-3 hover:shadow-md transition-shadow">
-                <div className="h-1 bg-hunyadi-500 rounded mb-2" />
-                <div className="text-sm font-semibold text-gray-800 line-clamp-1">{title}</div>
-                <div className="text-xs text-gray-500">{i % 2 ? 'from AllRecipes' : 'from Food Network'}</div>
+            {[ 
+              { title: 'Smash Burgers', source: 'Food Network', color: 'red' },
+              { title: 'Lemon Drizzle Cake', source: 'AllRecipes', color: 'yellow' },
+              { title: 'Crispy Tofu', source: 'Serious Eats', color: 'green' },
+              { title: 'One-Pot Pasta', source: 'Bon Appétit', color: 'blue' }
+            ].map((recipe, i) => (
+              <div 
+                key={i} 
+                className={`border-2 rounded-xl p-4 transition-all duration-300 cursor-pointer ${
+                  hoveredIndex === i 
+                    ? 'border-purple-400 shadow-lg -translate-y-1 bg-purple-50' 
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                }`}
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                <div className={`h-1.5 bg-gradient-to-r from-${recipe.color}-400 to-${recipe.color}-600 rounded-full mb-3`} />
+                <div className="text-sm font-bold text-gray-900 mb-1">{recipe.title}</div>
+                <div className="text-xs text-gray-500 flex items-center gap-1">
+                  <BookMarked className="w-3 h-3" />
+                  {recipe.source}
+                </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 text-right">
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-hunyadi-500 text-white rounded-lg text-sm hover:bg-hunyadi-600">
-              <Globe className="w-4 h-4" /> Launch Web App
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl">
+              <Globe className="w-5 h-5" />
+              Open Web App
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -126,193 +194,410 @@ function FolderPreview() {
   );
 }
 
+// Stats counter animation
+function StatCounter({ end, duration = 2000, suffix = '' }) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    let startTime;
+    let animationFrame;
+
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      
+      setCount(Math.floor(progress * end));
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [isVisible, end, duration]);
+
+  return (
+    <span ref={ref} className="tabular-nums">
+      {count.toLocaleString()}{suffix}
+    </span>
+  );
+}
+
 export default function LandingPage({ onGetStarted }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-[#ffde59]">
-        <div className="max-w-7xl mx-auto px-6 py-20">
+      <div className="relative overflow-hidden bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500">
+        <div className="absolute inset-0 bg-black/10"></div>
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <img src="/logo.png" alt="Get The Recipe!" className="w-28 h-28 md:w-32 md:h-32 object-contain" />
-              <SplitText text="Get The Recipe!" className="text-5xl md:text-6xl font-bold text-charcoal-500" />
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-2xl shadow-2xl flex items-center justify-center transform hover:rotate-6 transition-transform">
+                <ChefHat className="w-12 h-12 md:w-14 md:h-14 text-orange-500" />
+              </div>
+              <SplitText 
+                text="Get The Recipe!" 
+                className="text-5xl md:text-7xl font-black text-white drop-shadow-lg" 
+              />
             </div>
-            <p className="text-xl text-charcoal-400 mb-8 max-w-2xl mx-auto">
-              Transform any recipe URL into a clean, organized format. Save time cooking with our smart recipe parser that extracts ingredients and instructions from any website.
+            
+            <p className="text-2xl md:text-3xl text-white font-semibold mb-4 drop-shadow-md">
+              Skip the life story. Get straight to cooking.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            
+            <p className="text-lg md:text-xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Transform any recipe URL into a clean, organized format instantly. No more scrolling through endless blog posts to find the ingredients.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
                 onClick={onGetStarted}
-                className="px-8 py-4 bg-hunyadi-500 text-white rounded-lg font-semibold hover:bg-hunyadi-600 transition-colors flex items-center gap-2 justify-center"
+                className="group px-10 py-5 bg-white text-gray-900 rounded-2xl font-bold text-lg hover:bg-gray-100 transition-all shadow-2xl hover:shadow-3xl hover:scale-105 flex items-center gap-3"
               >
-                <Globe className="w-5 h-5" />
-                Try Web App Now
-                <ArrowRight className="w-5 h-5" />
+                <Globe className="w-6 h-6" />
+                Try It Free Now
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
+              
               <a
                 href="#download"
-                className="px-8 py-4 border-2 border-lapis-500 text-lapis-700 rounded-lg font-semibold hover:bg-lapis-500 hover:text-white transition-colors flex items-center gap-2 justify-center"
+                className="px-10 py-5 border-3 border-white text-white rounded-2xl font-bold text-lg hover:bg-white hover:text-gray-900 transition-all shadow-xl flex items-center gap-3"
               >
-                <Smartphone className="w-5 h-5" />
+                <Smartphone className="w-6 h-6" />
                 Get Mobile App
               </a>
             </div>
+
+            <p className="mt-8 text-white/80 text-sm">
+              ✨ No signup required • 🚀 Works instantly • 💯 100% free
+            </p>
           </div>
         </div>
       </div>
 
-      {/* No-life-story Section with CardSwap + Folder */}
-      <div className="bg-white py-20">
+      {/* Stats Section */}
+      <div className="bg-white border-y border-gray-200 py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">
-              I came for lasagna, not your life story
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { label: 'Recipes Parsed', value: 50000, suffix: '+', icon: Search },
+              { label: 'Happy Cooks', value: 12500, suffix: '+', icon: Users },
+              { label: 'Time Saved', value: 1000, suffix: 'hrs', icon: Clock },
+              { label: 'Success Rate', value: 99, suffix: '%', icon: TrendingUp }
+            ].map((stat, i) => (
+              <div key={i} className="text-center">
+                <div className="flex justify-center mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <stat.icon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="text-3xl md:text-4xl font-black text-gray-900 mb-1">
+                  <StatCounter end={stat.value} suffix={stat.suffix} />
+                </div>
+                <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Problem/Solution Section */}
+      <div className="bg-gradient-to-b from-white to-gray-50 py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <span className="inline-block px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-bold mb-4">
+              THE PROBLEM
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
+              I came for lasagna,<br />not your life story
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Paste a link. We skip the novel and deliver clean ingredients and steps — fast.
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              We all know the drill: You're hungry, you click a recipe link, and suddenly you're reading a 2,000-word essay about someone's childhood memories.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
-            <div>
+          <div className="grid lg:grid-cols-2 gap-16 items-start mb-20">
+            <div className="space-y-6">
               <CardSwap />
+              <div className="text-center">
+                <p className="text-sm text-gray-500">
+                  Click or hover to see the difference
+                </p>
+              </div>
             </div>
-            <div>
+            
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-8 border-2 border-emerald-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-xl flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900">The Solution</h3>
+                </div>
+                <ul className="space-y-4">
+                  {[
+                    'Paste any recipe URL',
+                    'We extract only what matters',
+                    'Get clean ingredients & steps',
+                    'Save to your personal collection',
+                    'Access offline anytime'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-gray-700 font-medium">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
               <FolderPreview />
             </div>
           </div>
         </div>
       </div>
 
-      {/* App Showcase Section */}
-      <div className="bg-gray-50 py-20">
+      {/* Features Grid */}
+      <div className="bg-white py-24">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-800 mb-6">
-                Available Everywhere You Cook
-              </h2>
-              <p className="text-xl text-gray-600 mb-8">
-                Access your recipes on any device. Start on your phone, continue on your tablet, finish on your laptop.
-              </p>
-              
-              <div className="space-y-4 mb-8">
-                <div className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Instant recipe parsing from any website</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Save and organize your favorite recipes</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Offline access to saved recipes</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Automatic measurement conversion</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={onGetStarted}
-                  className="px-6 py-3 bg-hunyadi-500 text-white rounded-lg font-semibold hover:bg-hunyadi-600 transition-colors flex items-center gap-2 justify-center"
-                >
-                  <Globe className="w-5 h-5" />
-                  Launch Web App
-                </button>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="bg-white rounded-2xl shadow-2xl p-6">
-                <div className="bg-gradient-to-r from-hunyadi-500 to-hunyadi-600 h-2 rounded-t-lg mb-4"></div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  Classic Chocolate Brownies
-                </h3>
-                <p className="text-sm text-gray-500 italic mb-4">from AllRecipes</p>
-                <div className="flex gap-2 mb-4">
-                  <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-full">
-                    <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                    <span className="text-xs font-medium text-blue-800">16</span>
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-full">
-                    <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-                    <span className="text-xs font-medium text-green-800">15 mins</span>
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 rounded-full">
-                    <div className="w-3 h-3 bg-orange-600 rounded-full"></div>
-                    <span className="text-xs font-medium text-orange-800">45 mins</span>
-                  </div>
-                </div>
-                <div className="text-sm text-gray-600">
-                  <strong>10</strong> ingredients • <strong>6</strong> steps
-                </div>
-              </div>
-            </div>
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold mb-4">
+              FEATURES
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
+              Everything you need to cook better
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Powerful features designed to make your cooking experience seamless
+            </p>
           </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Search,
+                title: 'Instant Parsing',
+                description: 'Extract recipes from any website in seconds. Supports thousands of recipe sites.',
+                color: 'blue'
+              },
+              {
+                icon: BookMarked,
+                title: 'Smart Organization',
+                description: 'Save and categorize your favorite recipes. Create custom collections.',
+                color: 'purple'
+              },
+              {
+                icon: Globe,
+                title: 'Works Everywhere',
+                description: 'Access your recipes on any device. Web, iOS, and Android apps.',
+                color: 'green'
+              },
+              {
+                icon: Zap,
+                title: 'Lightning Fast',
+                description: 'No waiting, no loading screens. Get your recipes instantly.',
+                color: 'yellow'
+              },
+              {
+                icon: Shield,
+                title: 'Privacy First',
+                description: 'Your recipes are yours. We never share your data with anyone.',
+                color: 'red'
+              },
+              {
+                icon: Star,
+                title: 'Smart Features',
+                description: 'Measurement conversion, scaling, timer integration, and more.',
+                color: 'pink'
+              }
+            ].map((feature, i) => (
+              <div 
+                key={i}
+                className="group bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 border-2 border-gray-200 hover:border-gray-300 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+              >
+                <div className={`w-14 h-14 bg-gradient-to-br from-${feature.color}-400 to-${feature.color}-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 py-24">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+            Ready to cook smarter?
+          </h2>
+          <p className="text-xl text-white/90 mb-12 leading-relaxed">
+            Join thousands of home cooks who've already ditched the blog scroll. Start parsing recipes in seconds.
+          </p>
+          
+          <button
+            onClick={onGetStarted}
+            className="group inline-flex items-center gap-3 px-12 py-6 bg-white text-gray-900 rounded-2xl font-bold text-xl hover:bg-gray-100 transition-all shadow-2xl hover:shadow-3xl hover:scale-105"
+          >
+            <Globe className="w-7 h-7" />
+            Launch Web App Now
+            <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          <p className="mt-8 text-white/80 text-sm">
+            No credit card required • Free forever • Cancel anytime
+          </p>
         </div>
       </div>
 
       {/* Download Section */}
-      <div id="download" className="bg-gradient-to-r from-hunyadi-500 to-hunyadi-600 py-20">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Get The Mobile App
-          </h2>
-          <p className="text-xl text-hunyadi-100 mb-12 max-w-3xl mx-auto">
-            Take your recipes with you anywhere. Download the mobile app for iOS and Android to cook offline and sync across all your devices.
-          </p>
+      <div id="download" className="bg-gray-900 py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+              Get The Mobile App
+            </h2>
+            <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
+              Take your recipes with you. Download for iOS and Android to cook offline and sync across all your devices.
+            </p>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <a
-              href="https://apps.apple.com/app/get-the-recipe"
-              className="bg-black text-white px-8 py-4 rounded-lg flex items-center gap-3 hover:bg-gray-800 transition-colors"
-            >
-              <Download className="w-6 h-6" />
-              <div className="text-left">
-                <div className="text-xs">Download on the</div>
-                <div className="text-lg font-semibold">App Store</div>
-              </div>
-            </a>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
+              <a
+                href="https://apps.apple.com/app/get-the-recipe"
+                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl"
+              >
+                <Download className="w-7 h-7" />
+                <div className="text-left">
+                  <div className="text-xs text-gray-600">Download on the</div>
+                  <div className="text-xl font-bold">App Store</div>
+                </div>
+              </a>
 
-            <a
-              href="https://play.google.com/store/apps/details?id=com.gettherecipe"
-              className="bg-black text-white px-8 py-4 rounded-lg flex items-center gap-3 hover:bg-gray-800 transition-colors"
-            >
-              <Download className="w-6 h-6" />
-              <div className="text-left">
-                <div className="text-xs">Get it on</div>
-                <div className="text-lg font-semibold">Google Play</div>
-              </div>
-            </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.gettherecipe"
+                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl"
+              >
+                <Download className="w-7 h-7" />
+                <div className="text-left">
+                  <div className="text-xs text-gray-600">Get it on</div>
+                  <div className="text-xl font-bold">Google Play</div>
+                </div>
+              </a>
+            </div>
+
+            <p className="text-gray-400 text-sm">
+              Coming soon to App Store and Google Play
+            </p>
           </div>
 
-          <p className="text-hunyadi-100 mt-8 text-sm">
-            Coming soon to App Store and Google Play
-          </p>
+          {/* App Preview Card */}
+          <div className="max-w-md mx-auto">
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-700">
+              <div className="bg-gradient-to-r from-orange-500 to-pink-500 h-2 rounded-full mb-6"></div>
+              <h3 className="text-2xl font-bold text-white mb-3">
+                Classic Chocolate Brownies
+              </h3>
+              <p className="text-gray-400 italic mb-6">from AllRecipes</p>
+              
+              <div className="flex flex-wrap gap-3 mb-6">
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 rounded-full border border-blue-500/30">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span className="text-sm font-semibold text-blue-300">16 servings</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30">
+                  <Clock className="w-4 h-4 text-green-400" />
+                  <span className="text-sm font-semibold text-green-300">15 mins prep</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 rounded-full border border-orange-500/30">
+                  <Clock className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm font-semibold text-orange-300">45 mins cook</span>
+                </div>
+              </div>
+              
+              <div className="text-gray-300 flex items-center gap-4">
+                <span className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <strong className="text-white">10</strong> ingredients
+                </span>
+                <span className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-blue-400" />
+                  <strong className="text-white">6</strong> steps
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-900 py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <img src="/logo.png" alt="Get The Recipe!" className="w-8 h-8 object-contain" />
-            <h3 className="text-xl font-bold text-white">Get The Recipe!</h3>
+      <div className="bg-black py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl flex items-center justify-center">
+                <ChefHat className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-2xl font-black text-white">Get The Recipe!</h3>
+            </div>
+            
+            <p className="text-gray-400 mb-8 text-lg">
+              Making cooking easier, one recipe at a time.
+            </p>
+            
+            <button
+              onClick={onGetStarted}
+              className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-orange-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Globe className="w-6 h-6" />
+              Start Cooking Better
+              <Sparkles className="w-5 h-5" />
+            </button>
+
+            <div className="mt-12 pt-8 border-t border-gray-800">
+              <p className="text-gray-500 text-sm">
+                © 2024 Get The Recipe. All rights reserved. Made with ❤️ for home cooks everywhere.
+              </p>
+            </div>
           </div>
-          <p className="text-gray-400 mb-6">
-            Making cooking easier, one recipe at a time.
-          </p>
-          <button
-            onClick={onGetStarted}
-            className="px-6 py-3 bg-hunyadi-500 text-white rounded-lg font-semibold hover:bg-hunyadi-600 transition-colors flex items-center gap-2 mx-auto"
-          >
-            <Globe className="w-5 h-5" />
-            Start Cooking Better
-          </button>
         </div>
       </div>
     </div>
