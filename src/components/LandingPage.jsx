@@ -265,21 +265,20 @@ export default function LandingPage({ onGetStarted }) {
         
         <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="flex items-center justify-center mb-8">
               <img 
                 src="/logo.png" 
                 alt="Get The Recipe!" 
-                className="w-20 h-20 md:w-28 md:h-28 object-contain drop-shadow-lg" 
-              />
-              <SplitText 
-                text="Get The Recipe!" 
-                className="text-5xl md:text-7xl font-black text-white drop-shadow-lg" 
+                className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-2xl" 
               />
             </div>
             
-            <p className="text-2xl md:text-3xl text-white font-semibold mb-4 drop-shadow-md">
-              Skip the life story. Get straight to cooking.
-            </p>
+            <div className="mb-4">
+              <SplitText 
+                text="Skip the life story. Get straight to cooking." 
+                className="text-3xl md:text-5xl text-white font-bold drop-shadow-lg" 
+              />
+            </div>
             
             <p className="text-lg md:text-xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed">
               Transform any recipe URL into a clean, organized format instantly. No more scrolling through endless blog posts to find the ingredients.
@@ -419,45 +418,51 @@ export default function LandingPage({ onGetStarted }) {
                 icon: Search,
                 title: 'Instant Parsing',
                 description: 'Extract recipes from any website in seconds. Supports thousands of recipe sites.',
-                color: 'blue'
+                bgColor: 'bg-blue-100',
+                iconColor: 'text-blue-600'
               },
               {
-                icon: BookMarked,
+                icon: FolderIcon,
                 title: 'Smart Organization',
                 description: 'Save and categorize your favorite recipes. Create custom collections.',
-                color: 'purple'
+                bgColor: 'bg-purple-100',
+                iconColor: 'text-purple-600'
               },
               {
                 icon: Globe,
                 title: 'Works Everywhere',
                 description: 'Access your recipes on any device. Web, iOS, and Android apps.',
-                color: 'green'
+                bgColor: 'bg-green-100',
+                iconColor: 'text-green-600'
               },
               {
                 icon: Zap,
                 title: 'Lightning Fast',
                 description: 'No waiting, no loading screens. Get your recipes instantly.',
-                color: 'yellow'
+                bgColor: 'bg-yellow-100',
+                iconColor: 'text-yellow-600'
               },
               {
                 icon: Shield,
                 title: 'Privacy First',
                 description: 'Your recipes are yours. We never share your data with anyone.',
-                color: 'red'
+                bgColor: 'bg-red-100',
+                iconColor: 'text-red-600'
               },
               {
                 icon: Star,
                 title: 'Smart Features',
                 description: 'Measurement conversion, scaling, timer integration, and more.',
-                color: 'pink'
+                bgColor: 'bg-pink-100',
+                iconColor: 'text-pink-600'
               }
             ].map((feature, i) => (
               <div 
                 key={i}
-                className="group bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 border-2 border-gray-200 hover:border-gray-300 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+                className="group bg-white rounded-2xl p-8 border-2 border-gray-200 hover:border-gray-300 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
               >
-                <div className={`w-14 h-14 bg-gradient-to-br from-${feature.color}-400 to-${feature.color}-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className="w-7 h-7 text-white" />
+                <div className={`w-16 h-16 ${feature.bgColor} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className={`w-8 h-8 ${feature.iconColor}`} />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{feature.description}</p>
