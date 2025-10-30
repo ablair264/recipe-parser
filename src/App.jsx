@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, BookOpen, Plus, Trash2, ExternalLink, Loader2, LogOut, User, ToggleLeft, ToggleRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ChefHat, BookOpen, Plus, Trash2, ExternalLink, Loader2, LogOut, User, RefreshCw, AlertTriangle } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { convertIngredientsToUK, hasUSMeasurements } from './utils/measurementConverter';
 import LandingPage from './components/LandingPage';
@@ -8,6 +8,36 @@ import LandingPage from './components/LandingPage';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+function ProgressOverlay({ visible, progress, message }) {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Fetching recipe">
+      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div className="text-center mb-6">
+          <ChefHat className="w-16 h-16 text-hunyadi-500 mx-auto mb-4 animate-pulse" />
+          <h3 className="text-xl font-bold text-gray-800 mb-2">
+            Fetching Your Recipe
+          </h3>
+          <p className="text-gray-600" aria-live="polite">{message}</p>
+        </div>
+        <div className="relative" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-label="Recipe fetch progress">
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden" aria-hidden="true">
+            <div
+              className="bg-gradient-to-r from-hunyadi-500 to-hunyadi-600 h-full rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-between mt-2 text-sm text-gray-500">
+            <span>0%</span>
+            <span>{progress}%</span>
+            <span>100%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RecipeParser() {
   const [showLanding, setShowLanding] = useState(true);
@@ -554,219 +584,215 @@ export default function RecipeParser() {
 
   // Main app (authenticated)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900">
-      <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-center flex-1">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <img src="/logo.png" alt="Get The Recipe!" className="w-10 h-10 object-contain" />
-              <h1 className="text-3xl font-bold text-gray-800">Get The Recipe!</h1>
-            </div>
-            <p className="text-gray-600 text-sm">Fetch and organize recipes from any website</p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <User className="w-4 h-4" />
-                {user.email}
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-carolina-900 to-lapis-900">
+        <main className="max-w-6xl mx-auto p-6">
+          {/* Header */}
+          <header className="flex justify-between items-center mb-8">
+            <div className="text-center flex-1">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <img src="/logo.png" alt="Get The Recipe!" className="w-10 h-10 object-contain" />
+                <h1 className="text-3xl font-bold text-gray-100">Get The Recipe!</h1>
               </div>
+              <p className="text-gray-300 text-sm">Fetch and organize recipes from any website</p>
             </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-sm text-gray-200">
+                  <User className="w-4 h-4" />
+                  {user.email}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLanding(true)}
+                className="p-2 text-gray-300 hover:text-hunyadi-500 transition-colors"
+                title="Home"
+                aria-label="Home"
+              >
+                <ChefHat className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-300 hover:text-hunyadi-500 transition-colors"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </header>
+
+          {/* Navigation */}
+          <nav className="flex gap-4 mb-6 justify-center">
             <button
-              onClick={() => setShowLanding(true)}
-              className="p-2 text-gray-300 hover:text-hunyadi-500 transition-colors"
-              title="Home"
+              onClick={() => setActiveView('parser')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                activeView === 'parser'
+                  ? 'bg-hunyadi-500 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-carolina-800'
+              }`}
             >
-              <ChefHat className="w-5 h-5" />
+              <Plus className="w-5 h-5" />
+              Fetch Recipe
             </button>
             <button
-              onClick={handleLogout}
-              className="p-2 text-gray-300 hover:text-hunyadi-500 transition-colors"
-              title="Logout"
+              onClick={() => setActiveView('book')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                activeView === 'book'
+                  ? 'bg-hunyadi-500 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-carolina-800'
+              }`}
             >
-              <LogOut className="w-5 h-5" />
+              <BookOpen className="w-5 h-5" />
+              Recipe Book ({savedRecipes.length})
             </button>
-          </div>
-        </div>
+          </nav>
 
-        {/* Navigation */}
-        <div className="flex gap-4 mb-6 justify-center">
-          <button
-            onClick={() => setActiveView('parser')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              activeView === 'parser'
-                ? 'bg-hunyadi-500 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-carolina-800'
-            }`}
-          >
-            <Plus className="w-5 h-5" />
-Fetch Recipe
-          </button>
-          <button
-            onClick={() => setActiveView('book')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              activeView === 'book'
-                ? 'bg-hunyadi-500 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-carolina-800'
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            Recipe Book ({savedRecipes.length})
-          </button>
-        </div>
-
-        {/* Parser View */}
-        {activeView === 'parser' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Recipe URL
-              </label>
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com/recipe"
+          {/* Parser View */}
+          {activeView === 'parser' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipe URL
+                </label>
+                <div className="flex gap-3">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://example.com/recipe"
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hunyadi-500 focus:border-transparent"
-                  onKeyPress={(e) => e.key === 'Enter' && parseRecipe()}
+                  onKeyDown={(e) => e.key === 'Enter' && parseRecipe()}
                 />
-                {!showPreview && (
-                  <button
-                    onClick={parseRecipe}
-                    disabled={parsingLoading}
-                    className="px-6 py-3 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  >
-                    {parsingLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Fetching...
-                      </>
-                    ) : (
-                      'Fetch Recipe'
-                    )}
-                  </button>
-                )}
-                {currentRecipe && (
-                  <button
-                    onClick={clearRecipe}
-                    className="px-6 py-3 bg-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors flex items-center gap-2"
-                  >
-                    Clear Recipe
-                  </button>
-                )}
-              </div>
-              {error && (
-                <p className="mt-2 text-red-600 text-sm">{error}</p>
-              )}
-            </div>
-
-            {/* URL Preview Card */}
-            {showPreview && urlPreview && (
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-hunyadi-200">
-                <div className="flex items-start gap-4">
-                  {urlPreview.image && (
-                    <img 
-                      src={urlPreview.image} 
-                      alt={urlPreview.title}
-                      className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                  {!showPreview && (
+                    <button
+                      onClick={parseRecipe}
+                      disabled={parsingLoading}
+                      className="px-6 py-3 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      {parsingLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Fetching...
+                        </>
+                      ) : (
+                        'Fetch Recipe'
+                      )}
+                    </button>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-800 truncate mb-1">
-                      {urlPreview.title}
-                    </h3>
-                    {urlPreview.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                        {urlPreview.description}
-                      </p>
-                    )}
-                    {urlPreview.siteName && (
-                      <p className="text-xs text-gray-500">
-                        from {urlPreview.siteName}
-                      </p>
-                    )}
-                  </div>
+                  {currentRecipe && (
+                    <button
+                      onClick={clearRecipe}
+                      className="px-6 py-3 bg-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors flex items-center gap-2"
+                    >
+                      Clear Recipe
+                    </button>
+                  )}
                 </div>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={parseRecipe}
-                    disabled={parsingLoading}
-                    className="flex-1 px-4 py-2 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                  >
-                    {parsingLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Fetching Recipe...
-                      </>
-                    ) : (
-                      'Fetch This Recipe'
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowPreview(false);
-                      setUrlPreview(null);
-                    }}
-                    className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                {error && (
+                  <p className="mt-2 text-red-600 text-sm">{error}</p>
+                )}
               </div>
-            )}
 
-            {currentRecipe && (
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                {/* Colored accent bar */}
-                <div 
-                  className="h-2"
-                  style={{ backgroundColor: getCategoryColor(currentRecipe.title) }}
-                ></div>
-                
-                <div className="p-8">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex-1">
-                      <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                        {currentRecipe.title}
-                      </h2>
-                      
-                      {/* Recipe Source */}
-                      {currentRecipe.sourceUrl && (
-                        <p className="text-sm text-gray-500 italic mb-4">
-                          from {getSourceName(currentRecipe.sourceUrl)}
+              {/* URL Preview Card */}
+              {showPreview && urlPreview && (
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-hunyadi-200">
+                  <div className="flex items-start gap-4">
+                    {urlPreview.image && (
+                      <img 
+                        src={urlPreview.image} 
+                        alt={urlPreview.title}
+                        className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-800 truncate mb-1">
+                        {urlPreview.title}
+                      </h3>
+                      {urlPreview.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                          {urlPreview.description}
                         </p>
                       )}
-                      
-                      {/* Quick Stats with modern badges */}
-                      <div className="flex flex-wrap gap-3">
-                        {currentRecipe.servings && (
-                          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-full">
-                            <User className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800">
-                              {currentRecipe.servings.replace(/\D/g, '') || '4'} servings
-                            </span>
-                          </div>
-                        )}
-                        {currentRecipe.prepTime && (
-                          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-full">
-                            <ChefHat className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">
-                              {currentRecipe.prepTime}
-                            </span>
-                          </div>
-                        )}
-                        {currentRecipe.cookTime && (
-                          <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 rounded-full">
-                            <Loader2 className="w-4 h-4 text-orange-600" />
-                            <span className="text-sm font-medium text-orange-800">
-                              {currentRecipe.cookTime}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      {urlPreview.siteName && (
+                        <p className="text-xs text-gray-500">
+                          from {urlPreview.siteName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={parseRecipe}
+                      disabled={parsingLoading}
+                      className="flex-1 px-4 py-2 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {parsingLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Fetching Recipe...
+                        </>
+                      ) : (
+                        'Fetch This Recipe'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowPreview(false);
+                        setUrlPreview(null);
+                      }}
+                      className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {currentRecipe && (
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                  <div 
+                    className="h-2"
+                    style={{ backgroundColor: getCategoryColor(currentRecipe.title) }}
+                  ></div>
+                  <div className="p-8">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                      {currentRecipe.title}
+                    </h2>
+                    {currentRecipe.sourceUrl && (
+                      <p className="text-sm text-gray-500 italic mb-4">
+                        from {getSourceName(currentRecipe.sourceUrl)}
+                      </p>
+                    )}
+
+                    {/* Quick Stats with modern badges */}
+                    <div className="flex flex-wrap gap-3">
+                      {currentRecipe.servings && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-full">
+                          <User className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">
+                            {currentRecipe.servings.replace(/\D/g, '') || '4'} servings
+                          </span>
+                        </div>
+                      )}
+                      {currentRecipe.prepTime && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-full">
+                          <ChefHat className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            {currentRecipe.prepTime}
+                          </span>
+                        </div>
+                      )}
+                      {currentRecipe.cookTime && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 rounded-full">
+                          <Loader2 className="w-4 h-4 text-orange-600" />
+                          <span className="text-sm font-medium text-orange-800">
+                            {currentRecipe.cookTime}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex gap-2 ml-4">
@@ -787,8 +813,7 @@ Fetch Recipe
                         Save to Book
                       </button>
                     </div>
-                  </div>
-
+                  
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-lapis-300">
                     <h3 className="text-xl font-bold text-gray-800">
@@ -882,7 +907,6 @@ Fetch Recipe
                   </ol>
                 </div>
 
-                {/* Comments Summary */}
                 {currentRecipe.commentsSummary && (
                   <div className="mt-8">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-lapis-300">
@@ -893,146 +917,123 @@ Fetch Recipe
                     </div>
                   </div>
                 )}
+                </div>
               </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
-        {/* Recipe Book View */}
-        {activeView === 'book' && (
-          <div className="space-y-4">
-            {savedRecipes.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-600 mb-2">
-                  Your recipe book is empty
-                </h3>
-                <p className="text-gray-500">
-                  Fetch and save recipes to build your collection
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {savedRecipes.map((recipe) => (
-                  <div
-                    key={recipe.id}
-                    className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-                  >
-                    {/* Colored accent bar */}
-                    <div 
-                      className="h-2"
-                      style={{ backgroundColor: getCategoryColor(recipe.title) }}
-                    ></div>
-                    
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-xl font-bold text-gray-800 flex-1 line-clamp-2">
-                          {recipe.title}
-                        </h3>
-                        <button
-                          onClick={() => deleteRecipe(recipe.id)}
-                          className="text-red-600 hover:text-red-700 p-1 ml-2"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
+          {/* Recipe Book View */}
+          {activeView === 'book' && (
+            <div className="space-y-4">
+              {savedRecipes.length === 0 ? (
+                <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-600 mb-2">
+                    Your recipe book is empty
+                  </h3>
+                  <p className="text-gray-500">
+                    Fetch and save recipes to build your collection
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {savedRecipes.map((recipe) => (
+                    <div
+                      key={recipe.id}
+                      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                    >
+                      {/* Colored accent bar */}
+                      <div 
+                        className="h-2"
+                        style={{ backgroundColor: getCategoryColor(recipe.title) }}
+                      ></div>
                       
-                      {/* Recipe Source */}
-                      {recipe.source_url && (
-                        <p className="text-sm text-gray-500 italic mb-3">
-                          from {getSourceName(recipe.source_url)}
-                        </p>
-                      )}
-                      
-                      {/* Quick Stats with modern badges */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {recipe.servings && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-full">
-                            <User className="w-3 h-3 text-blue-600" />
-                            <span className="text-xs font-medium text-blue-800">
-                              {recipe.servings.replace(/\D/g, '') || '4'}
-                            </span>
-                          </div>
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="text-xl font-bold text-gray-800 flex-1 line-clamp-2">
+                            {recipe.title}
+                          </h3>
+                          <button
+                            onClick={() => deleteRecipe(recipe.id)}
+                            className="text-red-600 hover:text-red-700 p-1 ml-2"
+                            aria-label="Delete recipe"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        {/* Recipe Source */}
+                        {recipe.source_url && (
+                          <p className="text-sm text-gray-500 italic mb-3">
+                            from {getSourceName(recipe.source_url)}
+                          </p>
                         )}
-                        {recipe.prep_time && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-full">
-                            <ChefHat className="w-3 h-3 text-green-600" />
-                            <span className="text-xs font-medium text-green-800">
-                              {recipe.prep_time}
-                            </span>
-                          </div>
-                        )}
-                        {recipe.cook_time && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 rounded-full">
-                            <Loader2 className="w-3 h-3 text-orange-600" />
-                            <span className="text-xs font-medium text-orange-800">
-                              {recipe.cook_time}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                        
+                        {/* Quick Stats with modern badges */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {recipe.servings && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-full">
+                              <User className="w-3 h-3 text-blue-600" />
+                              <span className="text-xs font-medium text-blue-800">
+                                {recipe.servings.replace(/\D/g, '') || '4'}
+                              </span>
+                            </div>
+                          )}
+                          {recipe.prep_time && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-full">
+                              <ChefHat className="w-3 h-3 text-green-600" />
+                              <span className="text-xs font-medium text-green-800">
+                                {recipe.prep_time}
+                              </span>
+                            </div>
+                          )}
+                          {recipe.cook_time && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 rounded-full">
+                              <Loader2 className="w-3 h-3 text-orange-600" />
+                              <span className="text-xs font-medium text-orange-800">
+                                {recipe.cook_time}
+                              </span>
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="text-sm text-gray-600 mb-4">
-                        <span className="font-medium">{recipe.ingredients.length}</span> ingredients • 
-                        <span className="font-medium"> {recipe.instructions.length}</span> steps
-                      </div>
+                        <div className="text-sm text-gray-600 mb-4">
+                          <span className="font-medium">{recipe.ingredients.length}</span> ingredients • 
+                          <span className="font-medium"> {recipe.instructions.length}</span> steps
+                        </div>
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => loadRecipe(recipe)}
-                          className="flex-1 px-4 py-2 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 transition-colors"
-                        >
-                          View Recipe
-                        </button>
-                        <a
-                          href={recipe.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 border border-hunyadi-500 text-hunyadi-500 rounded-lg font-medium hover:bg-hunyadi-50 transition-colors flex items-center gap-1"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => loadRecipe(recipe)}
+                            className="flex-1 px-4 py-2 bg-hunyadi-500 text-white rounded-lg font-medium hover:bg-hunyadi-600 transition-colors"
+                          >
+                            View Recipe
+                          </button>
+                          <a
+                            href={recipe.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 border border-hunyadi-500 text-hunyadi-500 rounded-lg font-medium hover:bg-hunyadi-50 transition-colors flex items-center gap-1"
+                            aria-label="Open original recipe"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </main>
       </div>
-      
-      {/* Progress Overlay */}
-      {progressOverlay.visible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <div className="text-center mb-6">
-              <ChefHat className="w-16 h-16 text-hunyadi-500 mx-auto mb-4 animate-pulse" />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
-                Fetching Your Recipe
-              </h3>
-              <p className="text-gray-600">
-                {progressOverlay.message}
-              </p>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="relative">
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-hunyadi-500 to-hunyadi-600 h-full rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressOverlay.progress}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between mt-2 text-sm text-gray-500">
-                <span>0%</span>
-                <span>{progressOverlay.progress}%</span>
-                <span>100%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <ProgressOverlay 
+        visible={progressOverlay.visible}
+        progress={progressOverlay.progress}
+        message={progressOverlay.message}
+      />
+    </>
   );
 }
