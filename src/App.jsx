@@ -400,6 +400,20 @@ export default function RecipeParser() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Match failed');
+      // Overlay saved mappings from Supabase for this user
+      if (user && data?.items?.length) {
+        const queries = data.items.map(it => it.query);
+        const { data: saved } = await supabase
+          .from('product_mappings')
+          .select('normalized_name, product_url, product_label')
+          .eq('store', basketStore)
+          .in('normalized_name', queries);
+        const map = new Map((saved || []).map(r => [r.normalized_name, r]));
+        data.items = data.items.map(it => {
+          const s = map.get(it.query);
+          return s ? { ...it, mappedUrl: s.product_url, mappedLabel: s.product_label } : it;
+        });
+      }
       setBasketMatches(data);
     } catch (e) {
       console.error('Grocery match error', e);
@@ -954,15 +968,30 @@ export default function RecipeParser() {
 
                   {basketMatches && (
                     <div className="mt-6 border-t pt-4">
-                      <h4 className="font-semibold text-gray-800 mb-2">Store matches ({basketMatches.store})</h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-800">Store matches ({basketMatches.store})</h4>
+                        <button
+                          onClick={() => {
+                            (basketMatches.items || []).forEach(it => {
+                              const url = it.mappedUrl || it.searchUrl;
+                              if (url) window.open(url, '_blank');
+                            });
+                          }}
+                          className="px-3 py-1.5 bg-lapis-500 text-white rounded-md text-sm hover:bg-lapis-600"
+                        >
+                          Open All
+                        </button>
+                      </div>
                       <div className="space-y-2">
                         {basketMatches.items.map((it, i) => (
                           <div key={i} className="flex items-center justify-between text-sm">
                             <div className="text-gray-700 truncate">
                               <span className="font-medium">{it.ingredient}</span>
-                              <span className="text-gray-500"> → {it.query}</span>
+                              <span className="text-gray-500"> → {it.mappedLabel || it.query}</span>
                             </div>
-                            <a href={it.searchUrl} target="_blank" rel="noreferrer" className="text-lapis-600 hover:underline">Search</a>
+                            <a href={it.mappedUrl || it.searchUrl} target="_blank" rel="noreferrer" className="text-lapis-600 hover:underline">
+                              {it.mappedUrl ? 'Open' : 'Search'}
+                            </a>
                           </div>
                         ))}
                       </div>
