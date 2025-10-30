@@ -61,6 +61,9 @@ export default function RecipeParser() {
   const [useUKMeasurements, setUseUKMeasurements] = useState(false);
   const [substitutions, setSubstitutions] = useState({});
   const [loadingSubstitution, setLoadingSubstitution] = useState(null);
+  const [basketStore, setBasketStore] = useState('tesco');
+  const [basketMatches, setBasketMatches] = useState(null);
+  const [matching, setMatching] = useState(false);
   
   // URL Preview state
   const [urlPreview, setUrlPreview] = useState(null);
@@ -384,6 +387,26 @@ export default function RecipeParser() {
     setUrlPreview(null);
     setShowPreview(false);
     setError('');
+  };
+
+  const findGroceryMatches = async () => {
+    if (!currentRecipe) return;
+    setMatching(true);
+    try {
+      const res = await fetch('/.netlify/functions/grocery-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ingredients: currentRecipe.ingredients, store: basketStore })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Match failed');
+      setBasketMatches(data);
+    } catch (e) {
+      console.error('Grocery match error', e);
+      setError('Could not find grocery matches.');
+    } finally {
+      setMatching(false);
+    }
   };
 
   // Get normalized source name
@@ -838,6 +861,26 @@ export default function RecipeParser() {
                     <h3 className="text-xl font-bold text-gray-800">
                       Ingredients
                     </h3>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={basketStore}
+                        onChange={(e) => setBasketStore(e.target.value)}
+                        className="text-sm border border-gray-300 rounded-md px-2 py-1"
+                        title="Choose UK store"
+                      >
+                        <option value="tesco">Tesco</option>
+                        <option value="sainsburys">Sainsbury's</option>
+                        <option value="asda">Asda</option>
+                      </select>
+                      <button
+                        onClick={findGroceryMatches}
+                        disabled={matching}
+                        className="px-3 py-1.5 bg-hunyadi-500 text-white rounded-md text-sm hover:bg-hunyadi-600 disabled:opacity-50"
+                        title="Find in store"
+                      >
+                        {matching ? 'Matching…' : 'Add to Basket'}
+                      </button>
+                    </div>
                     {currentRecipe.ingredients.some(hasUSMeasurements) && (
                       <div className="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
                         <div className="flex items-center justify-center">
@@ -908,6 +951,24 @@ export default function RecipeParser() {
                       </li>
                     ))}
                   </ul>
+
+                  {basketMatches && (
+                    <div className="mt-6 border-t pt-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">Store matches ({basketMatches.store})</h4>
+                      <div className="space-y-2">
+                        {basketMatches.items.map((it, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm">
+                            <div className="text-gray-700 truncate">
+                              <span className="font-medium">{it.ingredient}</span>
+                              <span className="text-gray-500"> → {it.query}</span>
+                            </div>
+                            <a href={it.searchUrl} target="_blank" rel="noreferrer" className="text-lapis-600 hover:underline">Search</a>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Note: Direct basket add requires partner APIs. These links open pre‑filled searches for quick add; we can enable true one‑tap add once API keys are available.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
