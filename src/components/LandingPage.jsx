@@ -146,34 +146,34 @@ function FolderPreview() {
   
   return (
     <div className="max-w-xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 transform transition-transform hover:scale-105 duration-300">
-        <div className="h-14 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center px-6 text-white">
+      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+        <div className="h-14 bg-gradient-to-r from-blue-600 via-purple-600 to-purple-700 flex items-center px-6 text-white">
           <FolderIcon className="w-5 h-5 mr-3" />
-          <span className="font-semibold">Saved Recipes</span>
-          <div className="ml-auto bg-white/20 rounded-full px-3 py-1 text-xs font-medium">
+          <span className="font-bold text-lg">Saved Recipes</span>
+          <div className="ml-auto bg-white/25 rounded-full px-3 py-1 text-xs font-bold backdrop-blur-sm">
             124 recipes
           </div>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-6">
             {[ 
-              { title: 'Smash Burgers', source: 'Food Network', color: 'red' },
-              { title: 'Lemon Drizzle Cake', source: 'AllRecipes', color: 'yellow' },
-              { title: 'Crispy Tofu', source: 'Serious Eats', color: 'green' },
-              { title: 'One-Pot Pasta', source: 'Bon Appétit', color: 'blue' }
+              { title: 'Smash Burgers', source: 'Food Network', color: 'from-red-400 to-orange-500' },
+              { title: 'Lemon Drizzle Cake', source: 'AllRecipes', color: 'from-yellow-400 to-orange-400' },
+              { title: 'Crispy Tofu', source: 'Serious Eats', color: 'from-green-400 to-emerald-500' },
+              { title: 'One-Pot Pasta', source: 'Bon Appétit', color: 'from-blue-400 to-indigo-500' }
             ].map((recipe, i) => (
               <div 
                 key={i} 
                 className={`border-2 rounded-xl p-4 transition-all duration-300 cursor-pointer ${
                   hoveredIndex === i 
-                    ? 'border-purple-400 shadow-lg -translate-y-1 bg-purple-50' 
+                    ? 'border-purple-400 shadow-lg -translate-y-1 bg-purple-50/50' 
                     : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                 }`}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <div className={`h-1.5 bg-gradient-to-r from-${recipe.color}-400 to-${recipe.color}-600 rounded-full mb-3`} />
-                <div className="text-sm font-bold text-gray-900 mb-1">{recipe.title}</div>
+                <div className={`h-1.5 bg-gradient-to-r ${recipe.color} rounded-full mb-3`} />
+                <div className="text-sm font-bold text-gray-900 mb-1 leading-tight">{recipe.title}</div>
                 <div className="text-xs text-gray-500 flex items-center gap-1">
                   <BookMarked className="w-3 h-3" />
                   {recipe.source}
@@ -181,13 +181,11 @@ function FolderPreview() {
               </div>
             ))}
           </div>
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl">
-              <Globe className="w-5 h-5" />
-              Open Web App
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 via-purple-600 to-purple-700 text-white rounded-xl font-bold hover:from-blue-700 hover:via-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl">
+            <Globe className="w-5 h-5" />
+            Open Web App
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
@@ -258,8 +256,7 @@ export default function LandingPage({ onGetStarted }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500">
-        <div className="absolute inset-0 bg-black/10"></div>
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#F4D35E] via-[#EE964B] to-[#F95738]">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
@@ -269,9 +266,11 @@ export default function LandingPage({ onGetStarted }) {
         <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32">
           <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-8">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-2xl shadow-2xl flex items-center justify-center transform hover:rotate-6 transition-transform">
-                <ChefHat className="w-12 h-12 md:w-14 md:h-14 text-orange-500" />
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Get The Recipe!" 
+                className="w-20 h-20 md:w-28 md:h-28 object-contain drop-shadow-lg" 
+              />
               <SplitText 
                 text="Get The Recipe!" 
                 className="text-5xl md:text-7xl font-black text-white drop-shadow-lg" 
@@ -298,14 +297,14 @@ export default function LandingPage({ onGetStarted }) {
               
               <a
                 href="#download"
-                className="px-10 py-5 border-3 border-white text-white rounded-2xl font-bold text-lg hover:bg-white hover:text-gray-900 transition-all shadow-xl flex items-center gap-3"
+                className="px-10 py-5 border-3 border-white text-white rounded-2xl font-bold text-lg hover:bg-white hover:text-[#EE964B] transition-all shadow-xl flex items-center gap-3"
               >
                 <Smartphone className="w-6 h-6" />
                 Get Mobile App
               </a>
             </div>
 
-            <p className="mt-8 text-white/80 text-sm">
+            <p className="mt-8 text-white/90 text-sm font-medium">
               ✨ No signup required • 🚀 Works instantly • 💯 100% free
             </p>
           </div>
@@ -353,7 +352,8 @@ export default function LandingPage({ onGetStarted }) {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-16 items-start mb-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left side: CardSwap */}
             <div className="space-y-6">
               <CardSwap />
               <div className="text-center">
@@ -363,10 +363,12 @@ export default function LandingPage({ onGetStarted }) {
               </div>
             </div>
             
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-8 border-2 border-emerald-200">
+            {/* Right side: Solution box + Folder preview stacked */}
+            <div className="space-y-8">
+              {/* Solution Box */}
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-8 border-2 border-emerald-300 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
                     <Zap className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">The Solution</h3>
@@ -383,12 +385,13 @@ export default function LandingPage({ onGetStarted }) {
                       <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Check className="w-4 h-4 text-white" />
                       </div>
-                      <span className="text-gray-700 font-medium">{item}</span>
+                      <span className="text-gray-700 font-medium text-lg">{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               
+              {/* Folder Preview */}
               <FolderPreview />
             </div>
           </div>
@@ -465,12 +468,12 @@ export default function LandingPage({ onGetStarted }) {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 py-24">
+      <div className="bg-gradient-to-br from-[#F4D35E] via-[#EE964B] to-[#F95738] py-24">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-lg">
             Ready to cook smarter?
           </h2>
-          <p className="text-xl text-white/90 mb-12 leading-relaxed">
+          <p className="text-xl text-white/95 mb-12 leading-relaxed drop-shadow">
             Join thousands of home cooks who've already ditched the blog scroll. Start parsing recipes in seconds.
           </p>
           
@@ -483,7 +486,7 @@ export default function LandingPage({ onGetStarted }) {
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </button>
 
-          <p className="mt-8 text-white/80 text-sm">
+          <p className="mt-8 text-white/90 text-sm font-medium">
             No credit card required • Free forever • Cancel anytime
           </p>
         </div>
@@ -503,7 +506,7 @@ export default function LandingPage({ onGetStarted }) {
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
               <a
                 href="https://apps.apple.com/app/get-the-recipe"
-                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl"
+                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
               >
                 <Download className="w-7 h-7" />
                 <div className="text-left">
@@ -514,7 +517,7 @@ export default function LandingPage({ onGetStarted }) {
 
               <a
                 href="https://play.google.com/store/apps/details?id=com.gettherecipe"
-                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl"
+                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
               >
                 <Download className="w-7 h-7" />
                 <div className="text-left">
@@ -532,7 +535,7 @@ export default function LandingPage({ onGetStarted }) {
           {/* App Preview Card */}
           <div className="max-w-md mx-auto">
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-700">
-              <div className="bg-gradient-to-r from-orange-500 to-pink-500 h-2 rounded-full mb-6"></div>
+              <div className="bg-gradient-to-r from-[#EE964B] to-[#F95738] h-2 rounded-full mb-6"></div>
               <h3 className="text-2xl font-bold text-white mb-3">
                 Classic Chocolate Brownies
               </h3>
@@ -573,9 +576,11 @@ export default function LandingPage({ onGetStarted }) {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl flex items-center justify-center">
-                <ChefHat className="w-7 h-7 text-white" />
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Get The Recipe!" 
+                className="w-12 h-12 object-contain" 
+              />
               <h3 className="text-2xl font-black text-white">Get The Recipe!</h3>
             </div>
             
@@ -585,7 +590,7 @@ export default function LandingPage({ onGetStarted }) {
             
             <button
               onClick={onGetStarted}
-              className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-orange-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-[#EE964B] to-[#F95738] text-white rounded-xl font-bold text-lg hover:from-[#F95738] hover:to-[#EE964B] transition-all shadow-lg hover:shadow-xl"
             >
               <Globe className="w-6 h-6" />
               Start Cooking Better
