@@ -135,20 +135,34 @@ exports.handler = async (event, context) => {
 
       // If checkbox bullets exist, split on that first to preserve author formatting
       if (region.includes('▢')) {
-        // Split on checkbox bullets; drop any preface text before the first bullet
-        const rawParts = region.split('▢').slice(1);
-        const parts = rawParts.map(stripTags).map(s => s.trim()).filter(Boolean);
+        // Split on checkbox bullets and capture any header immediately before each bullet
+        const tokens = region.split('▢');
+        const out = [];
+        const pushHeaderIfAny = (pre) => {
+          const txt = stripTags(pre || '').trim();
+          // pick last header-like phrase ending with ':' and not too long
+          const m = txt.match(/([A-Za-z][A-Za-z\s()'’\-]{2,80}):\s*$/m);
+          if (m) {
+            const header = m[1].trim() + ':';
+            if (!out.length || out[out.length - 1] !== header) out.push(header);
+          }
+        };
         const looksIngredient = (t) => {
           if (!t) return false;
-          const isLong = t.length > 200;
+          const isLong = t.length > 180;
           const endsSentence = /\.[\s\)]*$/.test(t);
-          const hasVerb = /(add|place|roast|sa(u|)t[eé]|simmer|bring|blitz|serve|preheat|squeeze|pour|bake|cook)/i.test(t);
-          const hasMeasure = /(\d|cup|cups|tsp|tbsp|g\b|kg\b|mg\b|ml\b|l\b|oz\b|pound|lb\b|cloves?|leaves?|sheets?|bunch|stick|pinch|litre|liter)/i.test(t);
-          // allow short non-measured items like "Grilled cheese!" or "Salt and pepper"
+          const hasVerb = /(add|place|roast|sa(u|)t[eé]|simmer|bring|blitz|serve|preheat|squeeze|pour|bake|cook|arrange)/i.test(t);
+          const hasMeasure = /(\d|¼|½|¾|\b(cup|cups|tsp|tbsp|g|kg|mg|ml|l|oz|lb|cloves?|leaves?|sheets?|bunch|stick|pinch|litre|liter|grams?)\b)/i.test(t);
           const shortFreeform = t.length <= 40 && /(salt|pepper|cheese|basil|cream|tomato|onion|garlic)/i.test(t);
           return !isLong && !hasVerb && (!endsSentence || hasMeasure) && (hasMeasure || shortFreeform);
         };
-        return parts.filter(looksIngredient);
+        for (let i = 1; i < tokens.length; i++) {
+          // preface before this bullet (may contain a section header)
+          pushHeaderIfAny(tokens[i - 1]);
+          const bulletText = stripTags(tokens[i]).trim();
+          if (looksIngredient(bulletText)) out.push(bulletText);
+        }
+        return out;
       }
 
       // Otherwise, walk headings and lists in order and pair heading -> following list
