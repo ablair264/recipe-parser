@@ -135,9 +135,20 @@ exports.handler = async (event, context) => {
 
       // If checkbox bullets exist, split on that first to preserve author formatting
       if (region.includes('▢')) {
-        const parts = region.split('▢').map(stripTags).map(s => s.trim()).filter(Boolean);
-        // Keep header lines ending with ':'; keep non-empty items
-        return parts;
+        // Split on checkbox bullets; drop any preface text before the first bullet
+        const rawParts = region.split('▢').slice(1);
+        const parts = rawParts.map(stripTags).map(s => s.trim()).filter(Boolean);
+        const looksIngredient = (t) => {
+          if (!t) return false;
+          const isLong = t.length > 200;
+          const endsSentence = /\.[\s\)]*$/.test(t);
+          const hasVerb = /(add|place|roast|sa(u|)t[eé]|simmer|bring|blitz|serve|preheat|squeeze|pour|bake|cook)/i.test(t);
+          const hasMeasure = /(\d|cup|cups|tsp|tbsp|g\b|kg\b|mg\b|ml\b|l\b|oz\b|pound|lb\b|cloves?|leaves?|sheets?|bunch|stick|pinch|litre|liter)/i.test(t);
+          // allow short non-measured items like "Grilled cheese!" or "Salt and pepper"
+          const shortFreeform = t.length <= 40 && /(salt|pepper|cheese|basil|cream|tomato|onion|garlic)/i.test(t);
+          return !isLong && !hasVerb && (!endsSentence || hasMeasure) && (hasMeasure || shortFreeform);
+        };
+        return parts.filter(looksIngredient);
       }
 
       // Otherwise, walk headings and lists in order and pair heading -> following list
@@ -329,7 +340,8 @@ exports.handler = async (event, context) => {
     if (jsonLdRecipe) {
       // Try to enhance JSON-LD ingredients with author-provided sections
       const sectioned = extractIngredientsSections(htmlContent);
-      if (sectioned && sectioned.length >= Math.max((jsonLdRecipe.ingredients || []).length, 3)) {
+      // Only override JSON-LD if it is empty/poor; otherwise, trust JSON-LD
+      if ((!jsonLdRecipe.ingredients || jsonLdRecipe.ingredients.length === 0) && sectioned && sectioned.length >= 3) {
         jsonLdRecipe.ingredients = sectioned;
       }
       // JSON-LD found, but still analyze comments with LLM
