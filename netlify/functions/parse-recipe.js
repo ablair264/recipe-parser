@@ -191,7 +191,7 @@ exports.handler = async (event, context) => {
 
 IMPORTANT: Make sure you extract the recipe from this specific URL, not any cached or previous content.
 
-${htmlContent.substring(0, 20000)}
+${htmlContent.substring(0, 40000)}
 
 Extract and return ONLY a JSON object with this exact structure:
 {
@@ -210,7 +210,7 @@ CRITICAL REQUIREMENTS:
 - Include ALL cooking steps as separate array items.
 - Preserve exact measurements/notes; do not invent ingredients.
 - Focus on the recipe card or structured data; ignore ads and tips.
-- ANALYZE USER COMMENTS: Summarize useful tips/modifications if present.
+- ANALYZE USER COMMENTS THOROUGHLY: Look for comment sections, reviews, or user feedback. Summarize useful cooking tips, substitutions, modifications, or helpful insights from real users. Include specific tips like "Users recommend chilling dough for 2 hours for best results" or "Many suggest using parchment paper to prevent sticking". If there are no meaningful comments, use empty string.
 - Return ONLY valid JSON. No other text.`
           }
         ]
