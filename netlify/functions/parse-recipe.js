@@ -117,6 +117,69 @@ exports.handler = async (event, context) => {
       return out;
     };
 
+    const extractIngredientsSections = (html) => {
+      // Extract region between Ingredients and Instructions headings
+      const sectionMatch = (() => {
+        const startRe = /<h[1-6][^>]*>\s*ingredients\s*<\/h[1-6]>/i;
+        const endRe = /<h[1-6][^>]*>\s*(instructions|method|directions)\s*<\/h[1-6]>/i;
+        const start = html.search(startRe);
+        if (start === -1) return null;
+        const tail = html.slice(start);
+        const endIdxLocal = tail.search(endRe);
+        const end = endIdxLocal === -1 ? html.length : start + endIdxLocal;
+        return html.slice(start, end);
+      })();
+      if (!sectionMatch) return null;
+
+      const region = sectionMatch;
+
+      // If checkbox bullets exist, split on that first to preserve author formatting
+      if (region.includes('▢')) {
+        const parts = region.split('▢').map(stripTags).map(s => s.trim()).filter(Boolean);
+        // Keep header lines ending with ':'; keep non-empty items
+        return parts;
+      }
+
+      // Otherwise, walk headings and lists in order and pair heading -> following list
+      const items = [];
+      let lastHeader = null;
+      const re = /(<h[2-5][^>]*>[\s\S]*?<\/h[2-5]>)|(<(ul|ol)[^>]*>[\s\S]*?<\/\3>)/gi;
+      let m;
+      while ((m = re.exec(region))) {
+        const block = m[0];
+        if (/^<h/i.test(block)) {
+          const label = stripTags(block);
+          if (/:\s*$/.test(label)) {
+            lastHeader = label.trim();
+          } else {
+            // If it looks like a section but no colon, append one to help grouping
+            if (/sauce|ragu|bolognese|lasagn/i.test(label)) {
+              lastHeader = (label.trim() + ':');
+            } else {
+              lastHeader = null;
+            }
+          }
+        } else {
+          // list
+          const liRe = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+          let lm;
+          const listItems = [];
+          while ((lm = liRe.exec(block))) {
+            const t = stripTags(lm[1]);
+            if (t) listItems.push(t);
+          }
+          if (listItems.length) {
+            if (lastHeader) {
+              items.push(lastHeader);
+              lastHeader = null;
+            }
+            items.push(...listItems);
+          }
+        }
+      }
+      return items.length ? items : null;
+    };
+
     const extractFromHtmlStructure = (html, urlForContext) => {
       // Try microdata first
       let ingredients = extractByItemprop(html, 'recipeIngredient');
@@ -135,6 +198,12 @@ exports.handler = async (event, context) => {
       // If still empty, use heading-based lists
       if (ingredients.length === 0) ingredients = extractListAfterHeading(html, 'ingredients');
       if (instructions.length === 0) instructions = extractListAfterHeading(html, 'instructions');
+
+      // Try to enhance ingredients with author-provided sections if present
+      const sectioned = extractIngredientsSections(html);
+      if (sectioned && sectioned.length >= Math.max(ingredients.length, 3)) {
+        ingredients = sectioned;
+      }
 
       // Heuristic: a minimal valid parse requires at least 3 ingredients and 2 steps
       if (ingredients.length >= 3 && instructions.length >= 2) {
@@ -258,6 +327,11 @@ exports.handler = async (event, context) => {
 
     const jsonLdRecipe = extractFromJsonLd(htmlContent);
     if (jsonLdRecipe) {
+      // Try to enhance JSON-LD ingredients with author-provided sections
+      const sectioned = extractIngredientsSections(htmlContent);
+      if (sectioned && sectioned.length >= Math.max((jsonLdRecipe.ingredients || []).length, 3)) {
+        jsonLdRecipe.ingredients = sectioned;
+      }
       // JSON-LD found, but still analyze comments with LLM
       console.log('Analyzing comments for recipe:', jsonLdRecipe.title);
       try {

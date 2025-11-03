@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.recipe_ingredients (
   position integer,
   ingredient_text text,
   cleaned_ingredient text,
+  group_label text,
   quantity numeric,
   unit text,
   note text,
@@ -70,6 +71,12 @@ DO $$ BEGIN
     WHERE table_schema='public' AND table_name='recipe_ingredients' AND column_name='cleaned_ingredient'
   ) THEN
     ALTER TABLE public.recipe_ingredients ADD COLUMN cleaned_ingredient text;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='recipe_ingredients' AND column_name='group_label'
+  ) THEN
+    ALTER TABLE public.recipe_ingredients ADD COLUMN group_label text;
   END IF;
   -- allow raw_text to be nullable for RN inserts
   IF EXISTS (
@@ -171,6 +178,103 @@ DROP TRIGGER IF EXISTS trg_recipe_ingredients_sync ON public.recipe_ingredients;
 CREATE TRIGGER trg_recipe_ingredients_sync
 BEFORE INSERT OR UPDATE ON public.recipe_ingredients
 FOR EACH ROW EXECUTE FUNCTION public.recipe_ingredients_sync();
+
+-- Auto-sync recipe_ingredients from recipes.ingredients JSON on insert/update
+CREATE OR REPLACE FUNCTION public.sync_recipe_ingredients_from_recipes()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_is_array boolean;
+BEGIN
+  -- Only act when ingredients is present and is a JSON array
+  IF NEW.ingredients IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT (jsonb_typeof(NEW.ingredients::jsonb) = 'array') INTO v_is_array;
+  IF NOT v_is_array THEN
+    RETURN NEW;
+  END IF;
+
+  -- Rebuild mapping for this recipe
+  DELETE FROM public.recipe_ingredients WHERE recipe_id = NEW.id;
+
+  -- Unnest ingredients and compute group labels from section headers (lines ending with ':')
+  WITH items AS (
+    SELECT e.val AS raw, e.ord AS ord
+    FROM jsonb_array_elements_text(NEW.ingredients::jsonb) WITH ORDINALITY AS e(val, ord)
+  ), marked AS (
+    SELECT ord,
+           raw,
+           (raw ~* ':[\t ]*$') AS is_header,
+           regexp_replace(raw, ':[\t ]*$', '', 'i') AS header_label
+    FROM items
+  ), grp AS (
+    SELECT ord,
+           raw,
+           is_header,
+           header_label,
+           SUM(CASE WHEN is_header THEN 1 ELSE 0 END) OVER (ORDER BY ord ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS grp
+    FROM marked
+  ), headers AS (
+    SELECT grp, header_label FROM grp WHERE is_header
+  ), mapped AS (
+    SELECT g.ord,
+           g.raw,
+           g.is_header,
+           h.header_label AS group_label
+    FROM grp g
+    LEFT JOIN headers h ON h.grp = g.grp
+  )
+  INSERT INTO public.recipe_ingredients (recipe_id, raw_text, ingredient_text, cleaned_ingredient, position, group_label)
+  SELECT NEW.id,
+         m.raw AS raw_text,
+         m.raw AS ingredient_text,
+         public.canonicalize_ingredient_name(m.raw) AS cleaned_ingredient,
+         m.ord - 1 AS position,
+         NULLIF(btrim(m.group_label), '') AS group_label
+  FROM mapped m
+  WHERE coalesce(trim(m.raw), '') <> ''
+    AND m.is_header = false -- skip section headers themselves
+  ON CONFLICT (recipe_id, raw_text, ingredient_id) DO NOTHING;
+
+  -- Add an explicit pepper row for 'salt and pepper' compound lines if pepper not already present
+  INSERT INTO public.recipe_ingredients (recipe_id, raw_text, ingredient_text, cleaned_ingredient)
+  SELECT NEW.id, t.raw_text, 'pepper', 'pepper'
+  FROM (
+    SELECT DISTINCT e2.val AS raw_text
+    FROM jsonb_array_elements_text(NEW.ingredients::jsonb) AS e2(val)
+    WHERE e2.val ILIKE '%salt%' AND e2.val ILIKE '%pepper%'
+  ) t
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.recipe_ingredients ri
+    WHERE ri.recipe_id = NEW.id AND ri.raw_text = t.raw_text AND ri.cleaned_ingredient = 'pepper'
+  )
+  ON CONFLICT (recipe_id, raw_text, ingredient_id) DO NOTHING;
+
+  -- Add explicit oregano row for 'thyme and oregano' compound lines if missing
+  INSERT INTO public.recipe_ingredients (recipe_id, raw_text, ingredient_text, cleaned_ingredient)
+  SELECT NEW.id, t.raw_text, 'oregano', 'oregano'
+  FROM (
+    SELECT DISTINCT e3.val AS raw_text
+    FROM jsonb_array_elements_text(NEW.ingredients::jsonb) AS e3(val)
+    WHERE e3.val ILIKE '%thyme%' AND e3.val ILIKE '%oregano%'
+  ) t
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.recipe_ingredients ri
+    WHERE ri.recipe_id = NEW.id AND ri.raw_text = t.raw_text AND ri.cleaned_ingredient = 'oregano'
+  )
+  ON CONFLICT (recipe_id, raw_text, ingredient_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_recipes_sync_ingredients ON public.recipes;
+CREATE TRIGGER trg_recipes_sync_ingredients
+AFTER INSERT OR UPDATE OF ingredients ON public.recipes
+FOR EACH ROW EXECUTE FUNCTION public.sync_recipe_ingredients_from_recipes();
 
 DROP TRIGGER IF EXISTS trg_pantry_items_updated ON public.pantry_items;
 CREATE TRIGGER trg_pantry_items_updated
@@ -376,6 +480,28 @@ AS $$
       WHEN t ~ '\\b(beef\\s+)?dripping\\b' THEN 'beef dripping'
       WHEN t ~ '\\bwhite\\s+pepper\\b' THEN 'pepper'
       WHEN t ~ '\\beggs?\\b' THEN 'eggs'
+      WHEN t ~ '\\b(beef\\s+)?mince\\b|\\b(minced|ground)\\s+beef\\b' THEN 'beef mince'
+      WHEN t ~ '\\b(crushed|canned|tinned).*tomato' THEN 'canned tomatoes'
+      WHEN t ~ '\\btomato\\s+paste\\b|\\btomato\\s+pur(é|e)e?\\b' THEN 'tomato paste'
+      WHEN t ~ '\\b(red\\s+)?wine\\b' THEN 'red wine'
+      WHEN t ~ '\\b(beef\\s+)?(bouillon|stock)\\s+cubes?\\b' THEN 'beef stock cube'
+      WHEN t ~ '\\b(chicken\\s+)?(bouillon|stock)\\s+cubes?\\b' THEN 'chicken stock cube'
+      WHEN t ~ '\\bbay\\s+(leaf|leaves)\\b' THEN 'bay leaves'
+      WHEN t ~ '\\bthyme\\b' THEN 'thyme'
+      WHEN t ~ '\\boregano\\b' THEN 'oregano'
+      WHEN t ~ '\\bcelery\\b' THEN 'celery'
+      WHEN t ~ '\\bcarrots?\\b' THEN 'carrot'
+      WHEN t ~ '\\bonions?\\b' THEN 'onion'
+      WHEN t ~ '\\bgarlic\\b' THEN 'garlic'
+      WHEN t ~ '\\bgruy(è|e)re\\b' THEN 'gruyere'
+      WHEN t ~ '\\bcolby\\b' THEN 'colby'
+      WHEN t ~ '\\bmonterey\\s+jack\\b' THEN 'monterey jack'
+      WHEN t ~ '\\bparmesan\\b' THEN 'parmesan'
+      WHEN t ~ '\\bmozzarella\\b' THEN 'mozzarella'
+      WHEN t ~ '\\blasagn(a|e)\\s+sheets?\\b' THEN 'lasagna sheets'
+      WHEN t ~ '\\bnutmeg\\b' THEN 'nutmeg'
+      WHEN t ~ '\\bworcestershire\\b' THEN 'worcestershire sauce'
+      WHEN t ~ '\\bcheese\\b' THEN 'cheese'
       ELSE t
     END AS t
     FROM p
@@ -741,3 +867,77 @@ ON CONFLICT (alias) DO NOTHING;
 -- SELECT upsert_pantry_item('Onion', 2, 'pc');
 -- SELECT * FROM recipe_suggestions; -- suggestions for current user
 -- SELECT * FROM recipes_can_make();  -- raw match status per recipe
+-- Ragu / Lasagna staples
+INSERT INTO public.ingredients(name) VALUES ('beef mince') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='beef mince'), a.alias
+FROM (VALUES ('minced beef'), ('ground beef')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('canned tomatoes') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='canned tomatoes'), a.alias
+FROM (VALUES ('crushed tomatoes'), ('canned crushed tomato'), ('canned tomatoes'), ('tinned tomatoes'), ('passata'), ('tomato passata')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('tomato paste') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='tomato paste'), a.alias
+FROM (VALUES ('tomato puree'), ('tomato purée'), ('tomato concentrate')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('red wine') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='red wine'), a.alias
+FROM (VALUES ('pinot noir'), ('dry red wine')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('beef stock cube') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='beef stock cube'), a.alias
+FROM (VALUES ('beef bouillon cube'), ('bouillon cubes'), ('stock cubes'), ('beef stock cubes')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('bay leaves') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='bay leaves'), a.alias
+FROM (VALUES ('bay leaf')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('thyme') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('oregano') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('chicken stock cube') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='chicken stock cube'), a.alias
+FROM (VALUES ('chicken bouillon cube'), ('chicken stock cubes'), ('chicken stock')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('worcestershire sauce') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('onion') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('carrot') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('celery') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('garlic') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('butter') ON CONFLICT (name) DO NOTHING; -- already seeded above
+INSERT INTO public.ingredients(name) VALUES ('cheese') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('gruyere') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='gruyere'), a.alias
+FROM (VALUES ('gruyère')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('colby') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('cheddar') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('monterey jack') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('parmesan') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('mozzarella') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('lasagna sheets') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='lasagna sheets'), a.alias
+FROM (VALUES ('lasagne sheets')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('parsley') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('basil') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredients(name) VALUES ('nutmeg') ON CONFLICT (name) DO NOTHING;
