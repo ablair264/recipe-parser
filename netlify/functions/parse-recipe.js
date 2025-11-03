@@ -166,6 +166,43 @@ exports.handler = async (event, context) => {
 
     const jsonLdRecipe = extractFromJsonLd(htmlContent);
     if (jsonLdRecipe) {
+      // JSON-LD found, but still analyze comments with LLM
+      console.log('Analyzing comments for recipe:', jsonLdRecipe.title);
+      try {
+        const commentResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 1000,
+            messages: [
+              {
+                role: 'user',
+                content: `Analyze the comments section of this recipe page and summarize useful cooking tips and modifications from users:
+
+${htmlContent.substring(0, 30000)}
+
+Look for comment sections, reviews, or user feedback. Summarize useful cooking tips, substitutions, modifications, or helpful insights from real users. Include specific tips like "Users recommend chilling dough for 2 hours for best results" or "Many suggest using parchment paper to prevent sticking".
+
+Return ONLY a concise summary text (no JSON, no quotes). If there are no meaningful comments, return "No helpful comments found".`
+              }
+            ]
+          })
+        });
+
+        if (commentResponse.ok) {
+          const commentData = await commentResponse.json();
+          const commentsSummary = commentData.content[0].text.trim();
+          jsonLdRecipe.commentsSummary = commentsSummary === "No helpful comments found" ? '' : commentsSummary;
+        }
+      } catch (error) {
+        console.warn('Comment analysis failed:', error);
+      }
+
       return {
         statusCode: 200,
         headers,
