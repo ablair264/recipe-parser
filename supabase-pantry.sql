@@ -4,6 +4,8 @@
 -- 1) Extensions (idempotent)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "citext";
+CREATE EXTENSION IF NOT EXISTS "unaccent";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- 2) Base tables
 
@@ -22,28 +24,77 @@ CREATE TABLE IF NOT EXISTS public.recipe_ingredients (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   recipe_id uuid NOT NULL REFERENCES public.recipes(id) ON DELETE CASCADE,
   ingredient_id uuid REFERENCES public.ingredients(id) ON DELETE RESTRICT,
+  -- compatibility columns used by the RN app
+  position integer,
+  ingredient_text text,
+  cleaned_ingredient text,
   quantity numeric,
   unit text,
   note text,
   is_optional boolean NOT NULL DEFAULT false,
-  raw_text text NOT NULL, -- original line
+  raw_text text, -- original line
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe ON public.recipe_ingredients(recipe_id);
 CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_ingredient ON public.recipe_ingredients(ingredient_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_recipe_ingredients_recipe_raw
-  ON public.recipe_ingredients(recipe_id, raw_text);
+-- Allow multiple canonical ingredients for the same raw line (e.g., "salt and pepper")
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='uq_recipe_ingredients_recipe_raw'
+  ) THEN
+    DROP INDEX public.uq_recipe_ingredients_recipe_raw;
+  END IF;
+END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_recipe_ingredients_recipe_raw_ing
+  ON public.recipe_ingredients(recipe_id, raw_text, ingredient_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_cleaned
+  ON public.recipe_ingredients(cleaned_ingredient);
+
+-- Ensure compatibility columns exist for RN app
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='recipe_ingredients' AND column_name='position'
+  ) THEN
+    ALTER TABLE public.recipe_ingredients ADD COLUMN position integer;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='recipe_ingredients' AND column_name='ingredient_text'
+  ) THEN
+    ALTER TABLE public.recipe_ingredients ADD COLUMN ingredient_text text;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='recipe_ingredients' AND column_name='cleaned_ingredient'
+  ) THEN
+    ALTER TABLE public.recipe_ingredients ADD COLUMN cleaned_ingredient text;
+  END IF;
+  -- allow raw_text to be nullable for RN inserts
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='recipe_ingredients' AND column_name='raw_text'
+  ) THEN
+    BEGIN
+      ALTER TABLE public.recipe_ingredients ALTER COLUMN raw_text DROP NOT NULL;
+    EXCEPTION WHEN others THEN
+      -- ignore if already nullable or permissions limited
+      NULL;
+    END;
+  END IF;
+END $$;
 
 -- User pantry (one row per user x ingredient)
 CREATE TABLE IF NOT EXISTS public.pantry_items (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   ingredient_id uuid NOT NULL REFERENCES public.ingredients(id) ON DELETE RESTRICT,
+  ingredient_name text,
   cleaned_name citext, -- optional, lets clients upsert by name directly
-  quantity numeric,
+  quantity text,
   unit text,
-  note text,
+  notes text,
   expires_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -97,6 +148,30 @@ CREATE TRIGGER trg_recipe_ingredients_updated
 BEFORE UPDATE ON public.recipe_ingredients
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+-- Auto-fill cleaned_ingredient/ingredient_text when missing
+CREATE OR REPLACE FUNCTION public.recipe_ingredients_sync()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.ingredient_text IS NULL AND NEW.raw_text IS NOT NULL THEN
+    NEW.ingredient_text := NEW.raw_text;
+  END IF;
+  IF NEW.cleaned_ingredient IS NULL THEN
+    NEW.cleaned_ingredient := public.canonicalize_ingredient_name(COALESCE(NEW.ingredient_text, NEW.raw_text));
+  END IF;
+  IF NEW.ingredient_id IS NULL THEN
+    NEW.ingredient_id := public.find_canonical_ingredient(COALESCE(NEW.ingredient_text, NEW.raw_text));
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_recipe_ingredients_sync ON public.recipe_ingredients;
+CREATE TRIGGER trg_recipe_ingredients_sync
+BEFORE INSERT OR UPDATE ON public.recipe_ingredients
+FOR EACH ROW EXECUTE FUNCTION public.recipe_ingredients_sync();
+
 DROP TRIGGER IF EXISTS trg_pantry_items_updated ON public.pantry_items;
 CREATE TRIGGER trg_pantry_items_updated
 BEFORE UPDATE ON public.pantry_items
@@ -108,29 +183,28 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  -- On INSERT: if ingredient_id missing but cleaned_name provided, resolve/create ingredient
-  IF TG_OP = 'INSERT' THEN
-    IF NEW.ingredient_id IS NULL AND coalesce(NEW.cleaned_name::text,'') <> '' THEN
-      SELECT id INTO NEW.ingredient_id FROM public.ingredients WHERE name = NEW.cleaned_name;
-      IF NEW.ingredient_id IS NULL THEN
-        INSERT INTO public.ingredients(name) VALUES (NEW.cleaned_name) RETURNING id INTO NEW.ingredient_id;
-      END IF;
-    END IF;
-    -- If cleaned_name missing but ingredient provided, backfill from ingredients
-    IF NEW.cleaned_name IS NULL AND NEW.ingredient_id IS NOT NULL THEN
-      SELECT name INTO NEW.cleaned_name FROM public.ingredients WHERE id = NEW.ingredient_id;
-    END IF;
-  ELSE
-    -- On UPDATE: if cleaned_name changed, update ingredient_id accordingly
-    IF NEW.cleaned_name IS DISTINCT FROM OLD.cleaned_name AND coalesce(NEW.cleaned_name::text,'') <> '' THEN
-      SELECT id INTO NEW.ingredient_id FROM public.ingredients WHERE name = NEW.cleaned_name;
-      IF NEW.ingredient_id IS NULL THEN
-        INSERT INTO public.ingredients(name) VALUES (NEW.cleaned_name) RETURNING id INTO NEW.ingredient_id;
-      END IF;
-    ELSIF NEW.ingredient_id IS DISTINCT FROM OLD.ingredient_id AND NEW.ingredient_id IS NOT NULL THEN
-      SELECT name INTO NEW.cleaned_name FROM public.ingredients WHERE id = NEW.ingredient_id;
-    END IF;
+  -- canonicalize cleaned_name
+  IF NEW.cleaned_name IS NULL AND NEW.ingredient_name IS NOT NULL THEN
+    NEW.cleaned_name := public.canonicalize_ingredient_name(NEW.ingredient_name)::citext;
+  ELSIF NEW.cleaned_name IS NOT NULL THEN
+    NEW.cleaned_name := public.canonicalize_ingredient_name(NEW.cleaned_name)::citext;
   END IF;
+
+  -- link to canonical ingredient if possible
+  IF NEW.ingredient_id IS NULL THEN
+    NEW.ingredient_id := public.find_canonical_ingredient(COALESCE(NEW.ingredient_name, NEW.cleaned_name::text));
+  END IF;
+
+  -- if still null, create a canonical ingredient so pantry joins work
+  IF NEW.ingredient_id IS NULL AND coalesce(NEW.cleaned_name::text,'') <> '' THEN
+    INSERT INTO public.ingredients(name) VALUES (NEW.cleaned_name) RETURNING id INTO NEW.ingredient_id;
+  END IF;
+
+  -- backfill readable ingredient_name from canonical
+  IF NEW.ingredient_name IS NULL AND NEW.ingredient_id IS NOT NULL THEN
+    SELECT name::text INTO NEW.ingredient_name FROM public.ingredients WHERE id = NEW.ingredient_id;
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -139,6 +213,59 @@ DROP TRIGGER IF EXISTS trg_pantry_sync ON public.pantry_items;
 CREATE TRIGGER trg_pantry_sync
 BEFORE INSERT OR UPDATE ON public.pantry_items
 FOR EACH ROW EXECUTE FUNCTION public.pantry_items_sync();
+
+-- 3a) Canonical alias table for ingredient normalization
+CREATE TABLE IF NOT EXISTS public.ingredient_aliases (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ingredient_id uuid NOT NULL REFERENCES public.ingredients(id) ON DELETE CASCADE,
+  alias citext NOT NULL,
+  priority int NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_alias UNIQUE(alias),
+  CONSTRAINT uq_ingredient_alias UNIQUE(ingredient_id, alias)
+);
+CREATE INDEX IF NOT EXISTS idx_alias_alias ON public.ingredient_aliases(alias);
+
+DROP TRIGGER IF EXISTS trg_aliases_updated ON public.ingredient_aliases;
+CREATE TRIGGER trg_aliases_updated
+BEFORE UPDATE ON public.ingredient_aliases
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- 3b) Backfill/compat: ensure pantry_items has expected columns/types used by RN app
+DO $$ BEGIN
+  -- ingredient_name column
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='pantry_items' AND column_name='ingredient_name'
+  ) THEN
+    ALTER TABLE public.pantry_items ADD COLUMN ingredient_name text;
+  END IF;
+
+  -- notes column: rename note->notes or add if missing
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='pantry_items' AND column_name='note'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='pantry_items' AND column_name='notes'
+  ) THEN
+    ALTER TABLE public.pantry_items RENAME COLUMN note TO notes;
+  ELSIF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='pantry_items' AND column_name='notes'
+  ) THEN
+    ALTER TABLE public.pantry_items ADD COLUMN notes text;
+  END IF;
+
+  -- quantity should be text for compatibility
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='pantry_items' AND column_name='quantity' AND data_type <> 'text'
+  ) THEN
+    ALTER TABLE public.pantry_items ALTER COLUMN quantity TYPE text USING quantity::text;
+  END IF;
+END $$;
 
 -- 4) RLS for pantry (private per-user)
 ALTER TABLE public.pantry_items ENABLE ROW LEVEL SECURITY;
@@ -184,11 +311,142 @@ AS $$
          )::citext
 $$;
 
+-- 5a) Canonicalization helpers (aliases + fuzzy)
+CREATE OR REPLACE FUNCTION public.normalize_ingredient_text(raw text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT btrim(
+           regexp_replace(
+             regexp_replace(
+               regexp_replace(unaccent(lower(coalesce(raw,''))), '\\([^)]*\\)', '', 'g'),
+               '\\[[^\\]]*\\]', '', 'g'
+             ),
+             '[-,/:.;]+', ' ', 'g'
+           )
+         );
+$$;
+
+CREATE OR REPLACE FUNCTION public.base_ingredient_phrase(raw text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  WITH s AS (
+    SELECT public.normalize_ingredient_text(raw) AS t
+  ), a AS (
+    SELECT regexp_replace(
+             t,
+             '^\\s*(?:~?[\\dx¼½¾⅓⅔⅛⅜⅝⅞/., ]+)?\\s*(?:x\\s*)?'
+             || '(?:tsp|tbsp|teaspoons?|tablespoons?|cup|cups|g|kg|mg|l|ml|cl|dl|oz|ounce|ounces|lb|lbs|pound|pounds|pinch|clove|cloves|can|cans|packet|packets|stick|sticks|slice|slices|bunch|bunches|sprig|sprigs|cm|mm|inch|inches)\\.?\\s*',
+             '', 'i'
+           ) AS t
+    FROM s
+  ), b AS (
+    SELECT regexp_replace(
+             t,
+             '\\b(all[- ]?purpose|plain|self[- ]?raising|extra|extra[- ]?virgin|fresh|ground|dried|minced|chopped|diced|sliced|grated|shredded|peeled|seeded|crushed|ripe|large|small|boneless|skinless|to taste|plus more|divided|cold|warm|hot)\\b',
+             '', 'gi'
+           ) AS t
+    FROM a
+  ), c AS (
+    SELECT btrim(regexp_replace(t, '\\s{2,}', ' ', 'g')) AS t FROM b
+  )
+  SELECT t FROM c;
+$$;
+
+CREATE OR REPLACE FUNCTION public.canonicalize_ingredient_name(raw text)
+RETURNS text
+LANGUAGE sql
+STABLE
+AS $$
+  WITH p AS (
+    SELECT public.base_ingredient_phrase(raw) AS t
+  ), canon AS (
+    SELECT CASE
+      WHEN t ~ '\\bolive oil\\b' THEN 'olive oil'
+      WHEN t ~ '\\bbaking powder\\b' THEN 'baking powder'
+      WHEN t ~ '\\bbaking soda\\b' THEN 'baking soda'
+      WHEN t ~ '\\b(cocoa|cacao) powder\\b' THEN 'cocoa powder'
+      WHEN t ~ '\\b(all[\\s-]?purpose|plain).*\\bflour\\b' THEN 'flour'
+      WHEN t ~ '\\bflour\\b' THEN 'flour'
+      WHEN t ~ '\\bmilk\\b' THEN 'milk'
+      WHEN t ~ '\\bwater\\b' THEN 'water'
+      WHEN t ~ '\\b(beef\\s+)?dripping\\b' THEN 'beef dripping'
+      WHEN t ~ '\\bwhite\\s+pepper\\b' THEN 'pepper'
+      WHEN t ~ '\\beggs?\\b' THEN 'eggs'
+      ELSE t
+    END AS t
+    FROM p
+  )
+  SELECT btrim(regexp_replace(t, '\\s{2,}', ' ', 'g')) FROM canon;
+$$;
+
+CREATE OR REPLACE FUNCTION public.find_canonical_ingredient(raw text)
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  v_norm text;
+  v_id uuid;
+  v_best uuid;
+  v_best_sim float;
+BEGIN
+  v_norm := public.canonicalize_ingredient_name(raw);
+
+  -- alias exact
+  SELECT ingredient_id INTO v_id
+    FROM public.ingredient_aliases
+   WHERE alias = v_norm
+   LIMIT 1;
+  IF v_id IS NOT NULL THEN
+    RETURN v_id;
+  END IF;
+
+  -- ingredient exact
+  SELECT id INTO v_id
+    FROM public.ingredients
+   WHERE name = v_norm
+   LIMIT 1;
+  IF v_id IS NOT NULL THEN
+    RETURN v_id;
+  END IF;
+
+  -- fuzzy via aliases
+  SELECT ia.ingredient_id, similarity(ia.alias::text, v_norm) AS sim
+    INTO v_best, v_best_sim
+  FROM public.ingredient_aliases ia
+  ORDER BY similarity(ia.alias::text, v_norm) DESC
+  LIMIT 1;
+
+  IF v_best IS NOT NULL AND v_best_sim >= 0.55 THEN
+    RETURN v_best;
+  END IF;
+
+  -- fuzzy via ingredient names
+  SELECT i.id, similarity(i.name::text, v_norm) AS sim
+    INTO v_best, v_best_sim
+  FROM public.ingredients i
+  ORDER BY similarity(i.name::text, v_norm) DESC
+  LIMIT 1;
+
+  IF v_best IS NOT NULL AND v_best_sim >= 0.6 THEN
+    RETURN v_best;
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
 -- 6) One-shot migration of existing recipe ingredients (from recipes.ingredients JSON array)
 WITH src AS (
   SELECT r.id AS recipe_id,
-         jsonb_array_elements_text(r.ingredients::jsonb) AS raw_line
+         e.raw_line AS raw_line,
+         e.ord - 1 AS pos
   FROM public.recipes r
+  CROSS JOIN LATERAL jsonb_array_elements_text(r.ingredients::jsonb) WITH ORDINALITY AS e(raw_line, ord)
   WHERE r.ingredients IS NOT NULL
     AND jsonb_typeof(r.ingredients::jsonb) = 'array'
     AND jsonb_array_length(r.ingredients::jsonb) > 0
@@ -206,18 +464,41 @@ ON CONFLICT (name) DO NOTHING;
 
 WITH src AS (
   SELECT r.id AS recipe_id,
-         jsonb_array_elements_text(r.ingredients::jsonb) AS raw_line
+         e.raw_line AS raw_line,
+         e.ord - 1 AS pos
   FROM public.recipes r
+  CROSS JOIN LATERAL jsonb_array_elements_text(r.ingredients::jsonb) WITH ORDINALITY AS e(raw_line, ord)
   WHERE r.ingredients IS NOT NULL
     AND jsonb_typeof(r.ingredients::jsonb) = 'array'
     AND jsonb_array_length(r.ingredients::jsonb) > 0
 )
-INSERT INTO public.recipe_ingredients (recipe_id, ingredient_id, raw_text)
-SELECT s.recipe_id, i.id, s.raw_line
+INSERT INTO public.recipe_ingredients (recipe_id, ingredient_id, raw_text, ingredient_text, cleaned_ingredient, position)
+SELECT s.recipe_id, i.id, s.raw_line, s.raw_line, public.guess_ingredient_name(s.raw_line)::text, s.pos
 FROM src s
 JOIN public.ingredients i
   ON i.name = public.guess_ingredient_name(s.raw_line)
-ON CONFLICT (recipe_id, raw_text) DO NOTHING;
+ON CONFLICT (recipe_id, raw_text, ingredient_id) DO NOTHING;
+
+-- Expand common compound lines like "salt and pepper" into separate ingredients
+WITH comp AS (
+  SELECT ri.recipe_id, ri.raw_text
+  FROM public.recipe_ingredients ri
+  WHERE ri.raw_text ILIKE '%salt%' AND ri.raw_text ILIKE '%pepper%'
+  GROUP BY ri.recipe_id, ri.raw_text
+)
+INSERT INTO public.recipe_ingredients (recipe_id, ingredient_id, raw_text, ingredient_text, cleaned_ingredient, position)
+SELECT c.recipe_id,
+       (SELECT id FROM public.ingredients WHERE name = 'pepper') AS ingredient_id,
+       c.raw_text,
+       'pepper' AS ingredient_text,
+       'pepper' AS cleaned_ingredient,
+       NULL AS position
+FROM comp c
+LEFT JOIN public.recipe_ingredients ri
+  ON ri.recipe_id = c.recipe_id
+ AND ri.raw_text = c.raw_text
+ AND ri.cleaned_ingredient = 'pepper'
+WHERE ri.id IS NULL;
 
 -- 7) What-can-I-make function for current user
 CREATE OR REPLACE FUNCTION public.recipes_can_make()
@@ -263,30 +544,57 @@ AS $$
   GROUP BY r.recipe_id
 $$;
 
+DROP VIEW IF EXISTS public.recipe_suggestions;
 -- 8) Convenience view joining recipes with match status
-CREATE OR REPLACE VIEW public.recipe_suggestions AS
+CREATE VIEW public.recipe_suggestions AS
+WITH tot AS (
+  SELECT ri.recipe_id, COUNT(*)::int AS total_ingredients
+  FROM public.recipe_ingredients ri
+  GROUP BY ri.recipe_id
+),
+matches AS (
+  -- prefer matching by canonical ingredient_id; fallback to cleaned names where id is null
+  SELECT user_id, recipe_id, SUM(pantry_matches)::int AS pantry_matches
+  FROM (
+    SELECT r.user_id, ri.recipe_id, COUNT(*)::int AS pantry_matches
+    FROM public.recipe_ingredients ri
+    JOIN public.recipes r ON r.id = ri.recipe_id
+    JOIN public.pantry_items p ON p.user_id = r.user_id AND ri.ingredient_id IS NOT NULL AND p.ingredient_id = ri.ingredient_id
+    GROUP BY r.user_id, ri.recipe_id
+    UNION ALL
+    SELECT r.user_id, ri.recipe_id, COUNT(*)::int AS pantry_matches
+    FROM public.recipe_ingredients ri
+    JOIN public.recipes r ON r.id = ri.recipe_id
+    JOIN public.pantry_items p ON p.user_id = r.user_id AND ri.ingredient_id IS NULL AND p.cleaned_name IS NOT NULL AND lower(p.cleaned_name::text) = lower(ri.cleaned_ingredient)
+    GROUP BY r.user_id, ri.recipe_id
+  ) u
+  GROUP BY user_id, recipe_id
+)
 SELECT
-  rs.recipe_id,
-  rec.title,
-  rec.image_url,
-  rec.source_url,
-  rs.have_count,
-  rs.need_count,
-  rs.missing_count,
-  rs.can_make,
-  rs.missing_ingredients,
-  rs.have_ingredients
-FROM public.recipes rec
-JOIN public.recipes_can_make() rs
-  ON rs.recipe_id = rec.id
-ORDER BY rs.can_make DESC, rs.missing_count ASC, rec.title;
+  r.user_id,
+  r.id AS id,
+  r.title,
+  r.image_url,
+  r.servings,
+  r.prep_time,
+  r.cook_time,
+  r.source_url,
+  COALESCE(t.total_ingredients, 0) AS total_ingredients,
+  COALESCE(m.pantry_matches, 0) AS pantry_matches,
+  CASE WHEN COALESCE(t.total_ingredients,0) = 0 THEN 0
+       ELSE ROUND((COALESCE(m.pantry_matches,0)::numeric / t.total_ingredients::numeric) * 100, 1)
+  END AS match_percentage
+FROM public.recipes r
+LEFT JOIN tot t ON t.recipe_id = r.id
+LEFT JOIN matches m ON m.recipe_id = r.id AND m.user_id = r.user_id
+ORDER BY match_percentage DESC, total_ingredients ASC, r.title;
 
 -- 9) Helper to upsert pantry entries by ingredient name (case-insensitive)
 CREATE OR REPLACE FUNCTION public.upsert_pantry_item(
   ingredient_name text,
-  qty numeric DEFAULT NULL,
+  qty text DEFAULT NULL,
   unit text DEFAULT NULL,
-  note text DEFAULT NULL
+  notes text DEFAULT NULL
 )
 RETURNS public.pantry_items
 LANGUAGE plpgsql
@@ -301,27 +609,133 @@ BEGIN
     RAISE EXCEPTION 'ingredient_name is required';
   END IF;
 
-  SELECT id INTO v_ing_id
-  FROM public.ingredients
-  WHERE name = ingredient_name::citext;
+  -- find canonical first
+  v_ing_id := public.find_canonical_ingredient(ingredient_name);
 
   IF v_ing_id IS NULL THEN
-    INSERT INTO public.ingredients(name) VALUES (ingredient_name)
+    INSERT INTO public.ingredients(name) VALUES (public.canonicalize_ingredient_name(ingredient_name))
     RETURNING id INTO v_ing_id;
   END IF;
 
-  INSERT INTO public.pantry_items(user_id, ingredient_id, quantity, unit, note)
-  VALUES (auth.uid(), v_ing_id, qty, unit, note)
+  INSERT INTO public.pantry_items(user_id, ingredient_id, quantity, unit, notes, ingredient_name, cleaned_name)
+  VALUES (auth.uid(), v_ing_id, qty, unit, notes, ingredient_name, public.canonicalize_ingredient_name(ingredient_name)::text)
   ON CONFLICT (user_id, ingredient_id) DO UPDATE
      SET quantity = excluded.quantity,
          unit = excluded.unit,
-         note = excluded.note,
+         notes = excluded.notes,
+         ingredient_name = excluded.ingredient_name,
+         cleaned_name = excluded.cleaned_name,
          updated_at = now()
   RETURNING * INTO v_row;
 
   RETURN v_row;
 END;
 $$;
+
+-- 10) Backfill data to canonical forms (safe to re-run)
+-- Fill recipe_ingredients normalized fields and link canonical ingredient_id
+WITH src AS (
+  SELECT r.id AS recipe_id,
+         e.val AS raw_line,
+         e.ord - 1 AS pos
+  FROM public.recipes r
+  CROSS JOIN LATERAL jsonb_array_elements_text(r.ingredients::jsonb) WITH ORDINALITY AS e(val, ord)
+  WHERE r.ingredients IS NOT NULL
+    AND jsonb_typeof(r.ingredients::jsonb) = 'array'
+    AND jsonb_array_length(r.ingredients::jsonb) > 0
+)
+UPDATE public.recipe_ingredients ri
+SET
+  ingredient_text = COALESCE(ri.ingredient_text, ri.raw_text),
+  cleaned_ingredient = COALESCE(ri.cleaned_ingredient, public.canonicalize_ingredient_name(COALESCE(ri.ingredient_text, ri.raw_text))),
+  position = COALESCE(ri.position, src.pos),
+  ingredient_id = COALESCE(ri.ingredient_id, public.find_canonical_ingredient(COALESCE(ri.ingredient_text, ri.raw_text)))
+FROM src
+WHERE src.recipe_id = ri.recipe_id
+  AND src.raw_line = ri.raw_text
+  AND (
+    ri.ingredient_text IS NULL OR ri.cleaned_ingredient IS NULL OR ri.position IS NULL OR ri.ingredient_id IS NULL
+  );
+
+-- Fallback fill if not matched by raw_text
+UPDATE public.recipe_ingredients ri
+SET
+  ingredient_text = COALESCE(ri.ingredient_text, ri.raw_text),
+  cleaned_ingredient = COALESCE(ri.cleaned_ingredient, public.canonicalize_ingredient_name(COALESCE(ri.ingredient_text, ri.raw_text))),
+  ingredient_id = COALESCE(ri.ingredient_id, public.find_canonical_ingredient(COALESCE(ri.ingredient_text, ri.raw_text)))
+WHERE ri.ingredient_text IS NULL OR ri.cleaned_ingredient IS NULL OR ri.ingredient_id IS NULL;
+
+-- Backfill pantry_items to canonical cleaned_name + link ingredient_id
+UPDATE public.pantry_items p
+SET
+  ingredient_name = COALESCE(p.ingredient_name, p.cleaned_name::text),
+  cleaned_name = public.canonicalize_ingredient_name(COALESCE(p.ingredient_name, p.cleaned_name::text))::citext
+WHERE p.ingredient_name IS NULL OR p.cleaned_name IS NULL;
+
+UPDATE public.pantry_items p
+SET ingredient_id = COALESCE(p.ingredient_id, public.find_canonical_ingredient(COALESCE(p.ingredient_name, p.cleaned_name::text)))
+WHERE p.ingredient_id IS NULL;
+
+-- 11) Seed a few common aliases (extend as needed)
+INSERT INTO public.ingredients(name) VALUES ('flour') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='flour'), a.alias
+FROM (VALUES ('all-purpose flour'), ('all purpose flour'), ('plain flour'), ('ap flour')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('olive oil') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='olive oil'), a.alias
+FROM (VALUES ('extra virgin olive oil'), ('extra-virgin olive oil'), ('virgin olive oil')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('milk') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='milk'), a.alias
+FROM (VALUES ('whole milk'), ('full fat milk'), ('semi skimmed milk'), ('semi-skimmed milk'), ('skimmed milk'), ('skim milk')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('water') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='water'), a.alias
+FROM (VALUES ('cold water'), ('warm water'), ('hot water')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('pepper') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='pepper'), a.alias
+FROM (VALUES ('white pepper'), ('black pepper'), ('ground pepper')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('eggs') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='eggs'), a.alias
+FROM (VALUES ('egg'), ('large eggs'), ('free-range eggs'), ('free range eggs')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('beef dripping') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='beef dripping'), a.alias
+FROM (VALUES ('dripping'), ('beef drippings')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('sugar') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='sugar'), a.alias
+FROM (VALUES ('granulated sugar'), ('white sugar')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('brown sugar') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='brown sugar'), a.alias
+FROM (VALUES ('light brown sugar'), ('dark brown sugar')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO public.ingredients(name) VALUES ('butter') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.ingredient_aliases(ingredient_id, alias)
+SELECT (SELECT id FROM public.ingredients WHERE name='butter'), a.alias
+FROM (VALUES ('unsalted butter'), ('salted butter')) AS a(alias)
+ON CONFLICT (alias) DO NOTHING;
 
 -- How to use (examples):
 -- SELECT upsert_pantry_item('Onion', 2, 'pc');

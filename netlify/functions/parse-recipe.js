@@ -60,6 +60,98 @@ exports.handler = async (event, context) => {
     console.log('HTML content length:', htmlContent.length);
     console.log('HTML preview:', htmlContent.substring(0, 500));
 
+    // Helper: basic HTML entity decode and tag stripping
+    const decodeEntities = (str = '') => str
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>');
+    const stripTags = (html = '') => decodeEntities(String(html).replace(/<[^>]*>/g, ' ')).replace(/\s{2,}/g, ' ').trim();
+
+    // Extract text list items after a heading like "Ingredients" / "Instructions"
+    const extractListAfterHeading = (html, headingWord) => {
+      const headingRe = new RegExp(`<h[1-6][^>]*>\\s*${headingWord}\\s*<\\/h[1-6]>`, 'i');
+      const m = html.match(headingRe);
+      let listHtml = '';
+      if (m && m.index != null) {
+        const start = m.index + m[0].length;
+        const tail = html.slice(start);
+        const listMatch = tail.match(/<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/i);
+        if (listMatch) listHtml = listMatch[2];
+      }
+      if (!listHtml) {
+        // Try classes like ingredient-list / instructions
+        const listClassMatch = html.match(/<(ul|ol)[^>]*(class|id)=["'][^"']*(ingredient|ingredient-list|ingredients|instruction|instructions)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/i);
+        if (listClassMatch) listHtml = listClassMatch[4];
+      }
+      if (!listHtml) return [];
+      const items = [];
+      const liRe = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+      let lm;
+      while ((lm = liRe.exec(listHtml))) {
+        const t = stripTags(lm[1]);
+        if (t) items.push(t);
+      }
+      return items;
+    };
+
+    // Microdata (itemprop) extractors
+    const extractByItemprop = (html, prop) => {
+      const out = [];
+      // content="..."
+      const contentRe = new RegExp(`itemprop=["']${prop}["'][^>]*content=["']([^"']+)["']`, 'gi');
+      let m1;
+      while ((m1 = contentRe.exec(html))) {
+        const t = stripTags(m1[1]);
+        if (t) out.push(t);
+      }
+      // <tag itemprop>inner text</tag>
+      const innerRe = new RegExp(`<[^>]*itemprop=["']${prop}["'][^>]*>([\s\S]*?)<\/[^>]+>`, 'gi');
+      let m2;
+      while ((m2 = innerRe.exec(html))) {
+        const t = stripTags(m2[1]);
+        if (t) out.push(t);
+      }
+      return out;
+    };
+
+    const extractFromHtmlStructure = (html, urlForContext) => {
+      // Try microdata first
+      let ingredients = extractByItemprop(html, 'recipeIngredient');
+      let instructions = extractByItemprop(html, 'recipeInstructions');
+
+      // Sometimes instructions are steps nested as <li itemprop> or HowToStep
+      if (instructions.length === 0) {
+        const howToStepRe = /<[^>]*itemprop=["'](recipeInstructions|step|howtostep)["'][^>]*>([\s\S]*?)<\/[^>]+>/gi;
+        let ms;
+        while ((ms = howToStepRe.exec(html))) {
+          const t = stripTags(ms[2]);
+          if (t) instructions.push(t);
+        }
+      }
+
+      // If still empty, use heading-based lists
+      if (ingredients.length === 0) ingredients = extractListAfterHeading(html, 'ingredients');
+      if (instructions.length === 0) instructions = extractListAfterHeading(html, 'instructions');
+
+      // Heuristic: a minimal valid parse requires at least 3 ingredients and 2 steps
+      if (ingredients.length >= 3 && instructions.length >= 2) {
+        return {
+          title: (html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || '').trim(),
+          servings: (html.match(/itemprop=["']recipeYield["'][^>]*content=["']([^"']+)["']/i)?.[1] || ''),
+          prepTime: (html.match(/itemprop=["']prepTime["'][^>]*content=["']([^"']+)["']/i)?.[1] || ''),
+          cookTime: (html.match(/itemprop=["']cookTime["'][^>]*content=["']([^"']+)["']/i)?.[1] || ''),
+          ingredients,
+          instructions,
+          sourceUrl: urlForContext,
+          commentsSummary: ''
+        };
+      }
+      return null;
+    };
+
     // Try JSON-LD (schema.org/Recipe) first – much more reliable than LLM
     const extractFromJsonLd = (html) => {
       const scripts = [];
@@ -210,7 +302,17 @@ Return ONLY a concise summary text (no JSON, no quotes). If there are no meaning
       };
     }
 
-    // Fallback to LLM extraction when JSON-LD is missing
+    // Fallback 1: Structured HTML (microdata/headings) without LLM
+    const structured = extractFromHtmlStructure(htmlContent, url);
+    if (structured) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(structured)
+      };
+    }
+
+    // Fallback 2: LLM extraction when both JSON-LD and structured HTML are missing/insufficient
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
