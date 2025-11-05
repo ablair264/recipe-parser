@@ -603,6 +603,15 @@ export default function LandingPage({ onGetStarted }) {
             </button>
 
             <div className="mt-12 pt-8 border-t border-gray-800">
+              <div className="mb-4 flex items-center justify-center gap-4">
+                <a href="/privacy" className="text-gray-400 hover:text-white underline-offset-4 hover:underline text-sm">
+                  Privacy Policy
+                </a>
+                <span className="text-gray-700">•</span>
+                <a href="/terms" className="text-gray-400 hover:text-white underline-offset-4 hover:underline text-sm">
+                  Terms of Service
+                </a>
+              </div>
               <p className="text-gray-500 text-sm">
                 © 2024 Get The Recipe. All rights reserved. Made with ❤️ for home cooks everywhere.
               </p>
