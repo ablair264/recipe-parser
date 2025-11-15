@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check, Folder as FolderIcon, FileText, Sparkles, Zap, Shield, Users, TrendingUp, Search, BookMarked } from 'lucide-react';
+import { ChefHat, Smartphone, Globe, Star, Clock, Download, ExternalLink, ArrowRight, Check, Folder as FolderIcon, FileText, Sparkles, Zap, Shield, Users, TrendingUp, Search, BookMarked, ShoppingCart, Repeat, BookOpen, PlayCircle, Tablet, Cloud } from 'lucide-react';
 
 // Animated text reveal component
 function SplitText({ text, className = '' }) {
@@ -497,15 +497,116 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </div>
 
+      {/* Mobile App Features Section */}
+      <div className="bg-gradient-to-b from-gray-50 to-white py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-6">
+              <Smartphone className="w-5 h-5 text-purple-600" />
+              <span className="text-sm font-bold text-purple-700 uppercase tracking-wide">Mobile Experience</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
+              Your recipes, everywhere you cook
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              The Defaff Recipes mobile app brings all the power of recipe parsing to your phone, plus exclusive features designed for hands-on cooking.
+            </p>
+          </div>
+
+          {/* Mobile Features Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {[
+              {
+                icon: PlayCircle,
+                title: 'Cooking Mode',
+                description: 'Step-by-step hands-free cooking interface. Voice commands and timer integration keep you focused on the food.',
+                gradient: 'from-orange-500 to-red-500',
+                bgGradient: 'from-orange-50 to-red-50'
+              },
+              {
+                icon: ShoppingCart,
+                title: 'Pantry Management',
+                description: 'Track ingredients you have at home. Know what you need before you shop and reduce food waste.',
+                gradient: 'from-green-500 to-emerald-600',
+                bgGradient: 'from-green-50 to-emerald-50'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Price Comparison',
+                description: 'Compare ingredient prices across stores. Find the best deals and save money on groceries.',
+                gradient: 'from-blue-500 to-indigo-600',
+                bgGradient: 'from-blue-50 to-indigo-50'
+              },
+              {
+                icon: Repeat,
+                title: 'US ↔ UK Units',
+                description: 'Toggle between US and UK measurements instantly. Perfect for international recipes and expats.',
+                gradient: 'from-purple-500 to-pink-600',
+                bgGradient: 'from-purple-50 to-pink-50'
+              },
+              {
+                icon: BookOpen,
+                title: 'Safari Extension',
+                description: 'Parse recipes directly from Safari on iOS. One tap to save any recipe you find online.',
+                gradient: 'from-cyan-500 to-blue-600',
+                bgGradient: 'from-cyan-50 to-blue-50'
+              },
+              {
+                icon: Tablet,
+                title: 'iPad Optimized',
+                description: 'Beautiful layouts designed for iPad. Perfect for keeping recipes visible while you cook.',
+                gradient: 'from-yellow-500 to-orange-500',
+                bgGradient: 'from-yellow-50 to-orange-50'
+              }
+            ].map((feature, i) => (
+              <div
+                key={i}
+                className={`group relative bg-gradient-to-br ${feature.bgGradient} rounded-2xl p-8 border-2 border-gray-200 hover:border-gray-300 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden`}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/50 to-transparent rounded-full blur-2xl transform translate-x-16 -translate-y-16"></div>
+                <div className={`relative w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                  <feature.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="relative text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                <p className="relative text-gray-700 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Platform Benefits */}
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-purple-700 rounded-3xl p-12 text-center shadow-2xl">
+            <h3 className="text-3xl md:text-4xl font-black text-white mb-6">
+              One Recipe Book, All Your Devices
+            </h3>
+            <p className="text-xl text-white/95 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Cloud sync keeps your recipes, pantry, and preferences perfectly synchronized across web, iPhone, iPad, and Android. Start on your laptop, finish on your phone.
+            </p>
+            <div className="flex flex-wrap justify-center gap-6 text-white">
+              {[
+                { icon: Smartphone, label: 'iPhone & iPad' },
+                { icon: Smartphone, label: 'Android' },
+                { icon: Globe, label: 'Web Browser' },
+                { icon: Cloud, label: 'Cloud Sync' }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 px-6 py-3 bg-white/20 rounded-xl backdrop-blur-sm border border-white/30">
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-semibold">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Download Section */}
       <div id="download" className="bg-gray-900 py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-              Get The Mobile App
+              Download Defaff Recipes Today
             </h2>
             <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-              Take your recipes with you. Download for iOS and Android to cook offline and sync across all your devices.
+              Available for iOS and Android. Take your recipes with you, cook offline, and sync seamlessly across all your devices.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
@@ -537,18 +638,19 @@ export default function LandingPage({ onGetStarted }) {
             </p>
           </div>
 
-          {/* App Preview Card */}
-          <div className="max-w-md mx-auto">
+          {/* Mobile App Features Showcase */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* App Preview Card 1 - Recipe Display */}
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-700">
-              <div className="bg-gradient-to-r from-[#EE964B] to-[#F95738] h-2 rounded-full mb-6"></div>
+              <div className="bg-gradient-to-r from-[#ffde59] to-[#f7ae2d] h-2 rounded-full mb-6"></div>
               <h3 className="text-2xl font-bold text-white mb-3">
                 Classic Chocolate Brownies
               </h3>
               <p className="text-gray-400 italic mb-6">from AllRecipes</p>
-              
+
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 rounded-full border border-blue-500/30">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <Users className="w-4 h-4 text-blue-400" />
                   <span className="text-sm font-semibold text-blue-300">16 servings</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30">
@@ -560,8 +662,8 @@ export default function LandingPage({ onGetStarted }) {
                   <span className="text-sm font-semibold text-orange-300">45 mins cook</span>
                 </div>
               </div>
-              
-              <div className="text-gray-300 flex items-center gap-4">
+
+              <div className="text-gray-300 flex items-center justify-between mb-6">
                 <span className="flex items-center gap-2">
                   <Check className="w-5 h-5 text-emerald-400" />
                   <strong className="text-white">10</strong> ingredients
@@ -570,6 +672,56 @@ export default function LandingPage({ onGetStarted }) {
                   <Check className="w-5 h-5 text-blue-400" />
                   <strong className="text-white">6</strong> steps
                 </span>
+              </div>
+
+              <div className="pt-4 border-t border-gray-700">
+                <div className="flex items-center gap-2 text-purple-400 mb-2">
+                  <Repeat className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Quick Convert</span>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  Instantly switch between US cups and UK measurements
+                </p>
+              </div>
+            </div>
+
+            {/* App Preview Card 2 - Mobile Features */}
+            <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl shadow-2xl p-8 border border-purple-700">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full mb-6"></div>
+              <h3 className="text-2xl font-bold text-white mb-6">
+                Mobile-First Features
+              </h3>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <PlayCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">Cooking Mode</h4>
+                    <p className="text-gray-300 text-sm">Hands-free step-by-step guide</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <ShoppingCart className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">Smart Pantry</h4>
+                    <p className="text-gray-300 text-sm">Track what you have at home</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">Price Tracker</h4>
+                    <p className="text-gray-300 text-sm">Compare grocery prices</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
