@@ -304,7 +304,7 @@ export default function LandingPage({ onGetStarted }) {
             </div>
 
             <p className="mt-8 text-white/90 text-sm font-medium">
-              ✨ No signup required • 🚀 Works instantly • 💯 100% free
+              ✨ No signup required • 🚀 Works instantly • 💯 No Faff!
             </p>
           </div>
         </div>
@@ -431,7 +431,7 @@ export default function LandingPage({ onGetStarted }) {
               {
                 icon: Globe,
                 title: 'Works Everywhere',
-                description: 'Access your recipes on any device. Web, iOS, and Android apps.',
+                description: 'Access your recipes on any device. Web, iOS, and Android (Coming Soon) apps.',
                 bgColor: 'bg-green-100',
                 iconColor: 'text-green-600'
               },
@@ -532,7 +532,7 @@ export default function LandingPage({ onGetStarted }) {
               },
               {
                 icon: TrendingUp,
-                title: 'Price Comparison',
+                title: 'Price Comparison [Coming Soon]',
                 description: 'Compare ingredient prices across stores. Find the best deals and save money on groceries.',
                 gradient: 'from-blue-500 to-indigo-600',
                 bgGradient: 'from-blue-50 to-indigo-50'
@@ -546,7 +546,7 @@ export default function LandingPage({ onGetStarted }) {
               },
               {
                 icon: BookOpen,
-                title: 'Safari Extension',
+                title: 'Safari Extension [Coming Soon]',
                 description: 'Parse recipes directly from Safari on iOS. One tap to save any recipe you find online.',
                 gradient: 'from-cyan-500 to-blue-600',
                 bgGradient: 'from-cyan-50 to-blue-50'
@@ -606,7 +606,7 @@ export default function LandingPage({ onGetStarted }) {
               Download Defaff Recipes Today
             </h2>
             <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-              Available for iOS and Android. Take your recipes with you, cook offline, and sync seamlessly across all your devices.
+              Available for iOS and Android [Android Due Dec' 2025]. Take your recipes with you, cook offline, and sync seamlessly across all your devices.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
@@ -620,21 +620,10 @@ export default function LandingPage({ onGetStarted }) {
                   <div className="text-xl font-bold">App Store</div>
                 </div>
               </a>
-
-              <a
-                href="https://play.google.com/store/apps/details?id=com.gettherecipe"
-                className="group bg-white text-gray-900 px-10 py-5 rounded-2xl flex items-center gap-4 hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
-              >
-                <Download className="w-7 h-7" />
-                <div className="text-left">
-                  <div className="text-xs text-gray-600">Get it on</div>
-                  <div className="text-xl font-bold">Google Play</div>
-                </div>
-              </a>
             </div>
 
             <p className="text-gray-400 text-sm">
-              Coming soon to App Store and Google Play
+              Available on App Store
             </p>
           </div>
 
